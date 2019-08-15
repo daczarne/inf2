@@ -1,0 +1,231 @@
+---
+title: "Inferencia II - Entrega 2"
+author: "Daniel Czarnievicz"
+date: "September 2017"
+output: pdf_document
+header-includes:
+   - \usepackage{mathrsfs}
+   - \setlength{\parskip}{1em}
+   - \usepackage{fancyhdr}
+   - \pagestyle{fancy}
+   - \lhead{Inferencia II - Entrega 2}
+   - \rhead{Daniel Czarnievicz}
+geometry: margin=2cm
+---
+
+```{r setup, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggthemes)
+library(Smisc)
+library(HDInterval)
+```
+
+Considere los siguientes datos
+```{r airline_fatalities, results="asis", echo=FALSE}
+d = data.frame(year = as.character(1976:1985),
+               fatal_accidents = c(24, 25, 31, 31, 22, 21, 26, 20, 16, 22),
+               passenger_deaths = c(734, 516, 754, 877, 814, 362, 764, 809, 223, 1066),
+               death_rate = c(0.19, 0.12, 0.15, 0.16, 0.14, 0.06, 0.13, 0.13, 0.03, 0.15)) %>%
+  mutate(miles_flown = passenger_deaths/death_rate) # 100 million miles
+knitr::kable(d, format="markdown", align="c", caption="Airline fatalities", digits=2,
+             col.names=c("Year", "Fatal accidents", "Passenger deths", "Death rate", "Miles flown"), 
+             format.args=list(big.mark=".", decimal.mark=","))
+```
+
+El objetivo es modelar la tasa de accidentes fatales por millas voladas. Para esto consideramos el modelo
+$$y_i \stackrel{ind}{\sim} \text{Poisson}(x_i \, \lambda)$$
+donde $y_i$ es el número de accidentes fatales en cada año, $x_i$ es el total de millas voladas en cada año y $\lambda$ es la tasa sobre la que nos interesa realizar inferencia.
+
+Sea el siguiente modelo: 
+$$
+\left\{
+\begin{array}{c}
+y_i \stackrel{ind}{\sim} \text{Poisson}(x_i \, \lambda) \\
+\\
+\lambda \sim \text{Gamma}(a, b)
+\end{array}
+\right.
+\Rightarrow
+\left\{
+\begin{array}{c c}
+p(y_i | x_i \, \lambda) = \frac{ e^{- x_i \, \lambda} \, (x_i \, \lambda)^{y_i} }{ y_i! } \text{I}_{ [ y_i \in \mathbb{N}_0 ] } \\
+\\
+p(\lambda) = \frac{b^a}{\Gamma(a)} \, \lambda^{a-1} \, e^{-b \lambda} \text{I}_{[\lambda \geq 0]}
+\end{array}
+\right.
+$$
+Utilizando la regla de Bayes obtenemos que:
+$$\lambda | y_i \, x_i \sim \text{Gamma} \left( a + \sum\limits_{i=1}^{10} y_i; \, b + \sum\limits_{i=1}^{10} x_i \right)$$
+
+1. Calcule un intervalo de credibilidad al 95% para $\lambda$ mediante percentiles.
+
+$$P\left( \text{Gamma}_{ (^{\alpha} / _2) } < \lambda | y_i \, x_i < \text{Gamma}_{ (1 - \, ^{\alpha}/_2) }  \right) = 1 - \alpha$$
+```{r echo=TRUE, results="hide"}
+a <- b <- 1
+sumy <- sum(d$fatal_accidents)
+sumx <- sum(d$miles_flown)
+alpha <- 0.05
+qgamma(c(alpha/2, 1-alpha/2), shape=a+sumy, rate=b+sumx)
+```
+
+```{r echo=FALSE, comment=NA}
+cat(paste("Lower Bound: ", round(qgamma(c(alpha/2, 1-alpha/2), shape=a+sumy, rate=b+sumx)[1], 5)))
+```
+
+```{r echo=FALSE, comment=NA}
+cat(paste("Upper Bound: ", round(qgamma(c(alpha/2, 1-alpha/2), shape=a+sumy, rate=b+sumx)[2], 5)))
+```
+
+\newpage
+2. Calcule un intervalo de credibilidad al 95% para $\lambda$ hallando la región de máxima posterior.
+
+```{r echo=TRUE, results="hide"}
+set.seed(123456789)
+bounds <- round(HDInterval::hdi(rgamma(100000, shape=a+sumy, rate=b+sumx)), 5)
+```
+
+```{r echo=FALSE, comment=NA}
+cat(paste("Lower Bound: ", bounds[1], "\n", "Upper Bound: ", bounds[2]))
+```
+
+```{r, echo=FALSE, fig.align="center", fig.pos="[h]", fig.cap="La diferencia entre máxima posterior y quintiles es prácticamente imperceptible debido a que la distribución es aproximadamente simétrica."}
+lambdas <- seq(0, 0.008, by=0.000001)
+gammas <- dgamma(lambdas, shape=a+sumy, rate=b+sumx)
+ggplot(data.frame(lambdas=lambdas, gammas=gammas) %>% dplyr::filter(lambdas > 0.002 & lambdas < 0.006)) +
+  scale_x_continuous(breaks=c(0.002, 0.003, 0.004, 0.005, 0.006)) +
+  ggtitle(label=expression(paste("Intervalos de credibilidad para ", lambda, " al 95%"))) +
+  ggthemes::theme_economist() +
+  labs(x=expression(lambda)) +
+  theme(axis.title=element_text(face="bold"),
+        axis.title.y=element_blank(),
+        axis.ticks=element_blank(),
+        plot.title=element_text(hjust=0.5)) +
+  geom_polygon(data=data.frame(x = c(qgamma(alpha/2, shape=a+sumy, rate=b+sumx),
+                                     seq(from=qgamma(alpha/2, shape=a+sumy, rate=b+sumx),
+                                         to=qgamma(1-alpha/2, shape=a+sumy, rate=b+sumx),
+                                         by=0.000001),
+                                     qgamma(1-alpha/2, shape=a+sumy, rate=b+sumx)),
+                               y = c(0,
+                                     dgamma(seq(from=qgamma(alpha/2, shape=a+sumy, rate=b+sumx),
+                                                to=qgamma(1-alpha/2, shape=a+sumy, rate=b+sumx),
+                                                by=0.000001), shape=a+sumy, rate=b+sumx),
+                                     0)), 
+               aes(x=x, y=y), fill="#99d8c9", inherit.aes=FALSE, show.legend=TRUE, alpha=0.4) +
+  geom_polygon(data=data.frame(x = c(bounds[1], seq(from=bounds[1], to=bounds[2], by=0.000001), bounds[2]),
+                               y = c(0, dgamma(seq(from=bounds[1], to=bounds[2], by=0.000001), shape=a+sumy, rate=b+sumx), 0)), 
+               aes(x=x, y=y), fill="#99d8c9", inherit.aes=FALSE, show.legend=TRUE, alpha=0.5) +
+  geom_point(aes(x=lambdas, y=gammas), color="#2ca25f", size=0.6) +
+  geom_text(aes(x=(0.0037+0.0047)/2, y=500, label="95%"), color="darkred")
+```
+
+3. Calcule un intervalo de predicción al 95% para $y_{1986} | x_{1986=8000}$ (con cualquier método)       
+
+$${\color{red} \star} \: \: p(\tilde{y} \, | \, x_i) = \int\limits_{Rec(\lambda)} p(\tilde{y}; \, \lambda | \, x_i) \, \text{d}\lambda = \int\limits_{Rec(\lambda)} p(\tilde{y} \, | \, x_i \, \lambda) \, p(\lambda \, | \, x_i) \, \text{d}\lambda =$$
+$$=\int\limits_{Rec(\lambda)} \frac{ e^{-x_i \, \lambda} \, (x_i \, \lambda)^{\tilde{y}} }{ \tilde{y}! } \, \text{I}_{[\tilde{y} \in \mathbb{N}_0]} \, \frac{ b^a }{ \Gamma(a) } \, \lambda^{a-1} \, e^{-b \, \lambda } \text{I}_{[ \lambda \geq 0 ]} \text{d}\lambda =$$
+$$= \frac{ b^a \, x_i^{\tilde{y}}}{ \Gamma(a) } \, \frac{ \text{I}_{[\tilde{y} \in \mathbb{N}_0]} }{ \tilde{y}! } \, \int\limits_{0}^{+\infty} \lambda^{\tilde{y} + a - 1} e^{-(b+x_i) \lambda} \, \text{d}\lambda = \frac{ b^a \, x_i^{\tilde{y}} }{ \Gamma(a) } \, \frac{ \text{I}_{[\tilde{y} \in \mathbb{N}_0]} }{ \tilde{y}! } \, \frac{ \Gamma( \tilde{y} + a ) }{ (b+x_i)^{\tilde{y} + a} } =$$
+$$= \frac{ \Gamma( \tilde{y} + a ) }{ \tilde{y}! \, \Gamma(a) } \, \frac{ b^a \, x_i^{\tilde{y}}}{ (b+x_i)^{\tilde{y} + a} } \, \text{I}_{[\tilde{y} \in \mathbb{N}_0]} = \frac{ (\tilde{y} + a - 1 )! }{ \tilde{y}! \, (a - 1)! } \left[ \frac{ b }{ b+ x_i } \right]^a \left[ \frac{ x_i }{ b+ x_i } \right]^{\tilde{y}} \, \text{I}_{[\tilde{y} \in \mathbb{N}_0]}$$
+\newpage
+Por lo tanto:
+$$\color{blue}\boxed{ \tilde{y} \sim \text{BN} \left(a; \, \frac{b}{b+x_i} \right) }$$
+$${\color{red} \star} \: \: p(\tilde{y} \, | \, y; \, x_i) = \!\!\!\!\!\! \int\limits_{Rec(\lambda)} \!\!\!\!\!\! p(\tilde{y}; \, \lambda \, | \, y; \, x_i) \, \text{d}\lambda = \!\!\!\!\!\! \int\limits_{Rec(\lambda)} \!\!\!\!\!\! p(\tilde{y} \, | \, x_i \, \lambda; \, y) \, p(\lambda \, | \, x_i; \, y) \, \text{d}\lambda = \!\!\!\!\!\! \int\limits_{Rec(\lambda)} \!\!\!\!\!\! p(\tilde{y} \, | \, x_i \, \lambda) \, p(\lambda \, | \, x_i; \, y) \, \text{d}\lambda =$$
+$$= \int\limits_{Rec(\lambda)} \frac{ e^{-x_i \,\lambda} \, (x_i \, \lambda)^{\tilde{y}} }{ \tilde{y}! } \, \text{I}_{[\tilde{y} \in \mathbb{N}_0 ]} \: \frac{ \left( \sum\limits_{i=1}^{10} x_i + b \right)^{\sum\limits_{i=1}^{n} y_i + a} }{ \Gamma \left( \sum\limits_{i=1}^{10} y_i + a \right) } \lambda^{\sum\limits_{i=1}^{10} y_i + a - 1}  \exp\left\{ - \left( \sum\limits_{i=1}^{10} x_i + b \right) \lambda \right\} \: \text{I}_{[\lambda \geq 0]} \: \text{d}\lambda =$$
+$$= \left[ \frac{\text{I}_{[\tilde{y} \in \mathbb{N}_0 ]} \, x_i^{\tilde{y}}}{ \tilde{y}! } \right] \left[ \frac{ \left( \sum\limits_{i=1}^{10} x_i + b \right)^{\sum\limits_{i=1}^{10} y_i + a} }{ \Gamma \left( \sum\limits_{i=1}^{10} y_i + a \right) } \right] \underbrace{ \int\limits_{0}^{+\infty} \lambda^{ \sum\limits_{i=1}^{10} y_i + a + \tilde{y} - 1 } \exp\left\{ - \left( \sum\limits_{i=1}^{10} x_i + b + x_i \right) \lambda \right\} \, \text{d} \lambda }_{ \text{kernel de una Gamma} \left( \sum\limits_{i=1}^{10} y_i + a + \tilde{y}; \, \sum\limits_{i=1}^{10} x_i + b + x_i \right) } =$$
+$$= \left[ \frac{\text{I}_{[\tilde{y} \in \mathbb{N}_0 ]} \, x_i^{\tilde{y}}}{ \tilde{y}! } \right] \left[ \frac{ \left( \sum\limits_{i=1}^{10} x_i + b \right)^{\sum\limits_{i=1}^{10} y_i + a} }{ \Gamma \left( \sum\limits_{i=1}^{10} y_i + a \right) } \right] \left[ \frac{ \Gamma \left( \sum\limits_{i=1}^{10} y_i + a + \tilde{y} \right) }{ \left( \sum\limits_{i=1}^{10} x_i + b + x_i \right)^{\sum\limits_{i=1}^{10} y_i + a + \tilde{y}} } \right] =$$
+Asumiendo que $a \in \mathbb{N}$ y $b \in \mathbb{N}$:
+$$= \text{I}_{[\tilde{y} \in \mathbb{N}_0 ]} \left[ \frac{ \left( \sum\limits_{i=1}^{10} y_i + a + \tilde{y} - 1 \right) ! }{ \tilde{y}! \, \left( \sum\limits_{i=1}^{10} y_i + a - 1 \right) ! } \right] \left[ \frac{ \sum\limits_{i=1}^{10} x_i + b }{ \sum\limits_{i=1}^{10} x_i + b + x_i } \right]^{\sum\limits_{i=1}^{10} y_i + a} \left[ \frac{ x_i }{ \sum\limits_{i=1}^{10} x_i + b + x_i} \right]^{\tilde{y}} =$$
+$$= \text{I}_{[\tilde{y} \in \mathbb{N}_0 ]} \left( \begin{array}{c} \sum\limits_{i=1}^{10} y_i + a + \tilde{y} - 1 \\ \sum\limits_{i=1}^{10} y_i + a - 1 \end{array} \right) \left[ \frac{ \sum\limits_{i=1}^{10} x_i + b }{ \sum\limits_{i=1}^{10} x_i + b + x_i } \right]^{\sum\limits_{i=1}^{10} y_i + a} \left[ \frac{x_i}{ \sum\limits_{i=1}^{10} x_i + b + x_i } \right]^{\tilde{y}}$$
+Por lo tanto:
+$$\color{blue}\boxed{ \tilde{y} | y \sim \text{BN}\left( \sum\limits_{i=1}^{10} y_i + a; \, \frac{ \sum\limits_{i=1}^{10} x_i + b }{ \sum\limits_{i=1}^{10} x_i + b + x_i } \right) }$$
+```{r results="hide"}
+xi <- 8000
+qnbinom(c(alpha/2, 1-alpha/2), size=sumy+a, prob=((b+sumx)/(b+sumx+xi)))
+```
+
+```{r echo=FALSE, comment=NA}
+cat(paste("Lower Bound: ", round(qnbinom(c(alpha/2, 1-alpha/2), size=sumy+a, prob=((b+sumx)/(b+sumx+xi)))[1], 4)))
+```
+
+```{r echo=FALSE, comment=NA}
+cat(paste("Upper Bound: ", round(qnbinom(c(alpha/2, 1-alpha/2), size=sumy+a, prob=((b+sumx)/(b+sumx+xi)))[2], 4)))
+```
+
+\newpage
+Considere el siguiente codigo de `R`. Los objetos `a1` y `b1` representan los parámetros en la posterior $p(\lambda \vert y)$
+
+```{r, eval=FALSE}
+N <- 1e3
+a1 <- "???"
+b1 <- "???"
+
+slope_fn <- Vectorize(
+  function(lam, xs) {
+    yrep <- rpois(length(xs), lambda=lam*xs)
+    m <- lm(log(yrep) ~ xs)
+    coef(m)[2]
+  },
+  vectorize.args = 'lam')
+
+slp.sims <- data_frame( lambda=rgamma(N, a1, b1) ) %>%
+  mutate(slp = slope_fn(lam=lambda, xs = d$miles_flown)) 
+```
+
+4. Describa el código anterior. ¿Qué hace la función `slope_fn`? (la parte de `Vectorize` no importa).
+
+`slope_fn` toma dos vectores numéricos, `lam` (de largo uno) y `xs`. Genera el vector `yrep` con `length(xs)` simulaciones de una distribución Poisson con esperanza y varianza igual a `lam*xs`. Luego estima un modelo lineal con variable dependiente `log(yrep)` contra una constante y `xs`. Devuelve el valor del parámetro asociado al regresor `xs`. Luego `Vectorize` vectoriza la función sobre el conjunto de lambdas expecificado por el usuario.
+
+5. Complete el código con los valores para `a1`, `b1` y ejecutalo. ¿Qué queda en el objeto `slp.sims`?      
+
+```{r}
+N <- 1e3
+a <- b <- 1
+a1 <- a+sumy
+b1 <- b+sumx
+
+set.seed(1234)
+slope_fn <- Vectorize(
+  function(lam, xs) {
+    yrep <<- rpois(length(xs), lambda = lam*xs)
+    m <<- lm(log(yrep) ~ xs)
+    coef(m)[2]
+  },
+  vectorize.args = 'lam')
+
+slp.sims <<- data_frame(lambda=rgamma(N, shape=a1, rate=b1)) %>%
+  mutate(slp=slope_fn(lam=lambda, xs=d$miles_flown)) 
+```
+
+Devuelve un `data.frame` con `r dim(slp.sims)[1]` filas y `r dim(slp.sims)[2]` columnas. La primera columna corresponde a los valores de `lambda` simulados con `rgamma(N, shape=a1, rate=b1)`. La segunda columna contiene los valores de las pendientes calculadas mediante la función `slope_fn`.
+
+```{r results="asis", echo=FALSE}
+knitr::kable(head(slp.sims, 8), format="markdown", align="c", caption="Simulaciones", digits=6,
+             col.names=c("Lambda", "Slope"), format.args=list(big.mark=".", decimal.mark=","))
+```
+
+6. Realiza un historgrama de la variable `slp` y agrega una línea vertical de color rojo con la pendiente del modelo `lm(log(fatal_accidents) ~ miles_flown, data=d)`   
+
+```{r, echo=FALSE, message=FALSE}
+ggplot(slp.sims) +
+  geom_histogram(aes(slp), fill="#2b8cbe", color="#2b8cbe") +
+  labs(x="Slope", y=element_blank()) +
+  ggtitle(label="Histograma de Slope") +
+  ggthemes::theme_economist() +
+  theme(axis.ticks=element_blank(),
+        axis.title.x=element_text(face="bold"),
+        plot.title=element_text(hjust=0.5)) +
+  geom_vline(xintercept=coef(lm(log(fatal_accidents) ~ miles_flown, data=d))[2], color="red") +
+  geom_text(aes(x = coef(lm(log(fatal_accidents) ~ miles_flown, data=d))[2]+0.00007, 
+                y = 120, 
+                label = "Slope del modelo"), 
+            color = "red") +
+  geom_vline(xintercept = mean(slp.sims$slp), 
+             color = "darkred") +
+  geom_text(aes(x = mean(slp.sims$slp)+0.0001,
+                y = 120,
+                label = "Media de las simulaciones"), 
+            color = "darkred")
+```
+
+7. ¿Qué nos informa el dibujo sobre el modelo que estamos estimando?
+
+Nos informa que el modelo no es adecuado para explicar los datos.
