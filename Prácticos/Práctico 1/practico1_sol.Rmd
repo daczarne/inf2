@@ -1,0 +1,175 @@
+---
+title: "Pr?ctico 1 - Soluci?n"
+author: "Daniel Czarnievicz"
+date: "2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, fig.width=6, fig.asp=0.618)
+library(tidyverse)
+```
+
+# Ejercicio 1
+
+1. Hallar la distribución de $Y=1/X$.
+
+$$X \sim \text{Gamma}(\alpha; \, \beta) \Rightarrow f_X(x) = \frac{ \beta^{\alpha} }{ \Gamma(\alpha) } \, x^{\alpha - 1} \, e^{-\beta \, x} \text{I}_{ [x \geq 0] }$$
+$$Y = 1/X \Rightarrow X = 1/Y \Rightarrow \frac{ \partial X }{ \partial Y } = - \frac{1}{Y^2}$$
+$$f_Y(y) = \frac{ \beta^{\alpha} }{ \Gamma(\alpha) } \, \left(\frac{1}{y}\right)^{\alpha - 1} \, \exp\left\{ -\frac{\beta}{y} \right\} \text{I}_{ [ \, ^1 \!/_y \, \geq 0] } \left| -\frac{1}{y^2} \right| = \frac{ \beta^{\alpha} }{ \Gamma(\alpha) } \, y^{-(\alpha + 1)} \, \exp\left\{ -\frac{\beta}{y} \right\} \text{I}_{ [ y \geq 0] } $$
+
+$$\therefore Y \sim \text{Inv-Gamma}(\alpha; \, \beta) $$
+2. Calcular $E(Y)$ y $V(Y)$.
+
+$$E(Y) = \int\limits_{0}^{+\infty} y \, f_Y(y) \, \text{d}y = \int\limits_{0}^{+\infty} \frac{\beta^{\alpha}}{\Gamma(\alpha)} \, \left( \frac{1}{y} \right)^{-\alpha} \exp\left\{ - \frac{\beta}{y} \right\} \text{d}y =$$
+Sea $Z=1/Y \Rightarrow Y=1/Z \Rightarrow \frac{ \text{d}z }{ \text{d}y } = - \frac{ 1 }{ z^2 }$, entonces:
+$$= \frac{\beta^{\alpha}}{\Gamma(\alpha)} \underbrace{ \int\limits_{0}^{+\infty} z^{\alpha - 2} e^{ -\beta \, z } \text{d}z }_{ \text{Gamma}(\alpha - 2; \, \beta) } = \frac{\beta^{\alpha}}{\Gamma(\alpha)} \, \frac{ \Gamma(\alpha - 1) }{ \beta^{\alpha - 1} } = \frac{ \beta }{ \alpha - 1 } \:\:\: \forall \alpha > 1 $$
+Siguiendo el mismo razonamiento:
+$$E(Y^2) = \frac{ \beta^2 }{ (\alpha - 2)(\alpha - 1) \:\:\: \forall \alpha > 2 }$$
+
+Por lo tanto:
+$$V(Y) = E(Y^2) - E^2(Y) = \frac{ \beta^2 }{ (\alpha - 2)(\alpha - 1) } - \left( \frac{ \beta }{ \alpha - 1 } \right)^2 = \frac{ \beta^2 }{ (\alpha - 2)(\alpha - 1)^2 } \:\:\: \forall \alpha > 2 $$
+
+3. 
+
+```{r}
+a <- b <- 2
+n <- 1000
+set.seed(123456789)
+x <- rgamma(n, shape=a, rate=b)
+y <- 1/x
+mean(y)
+var(y)
+```
+
+4. 
+
+```{r echo=FALSE, fig.align="default", out.width="50%"}
+a <- b <- .1
+rec <- seq(from=0, to=50, by=0.001)
+set.seed(123456789)
+x <- dgamma(x=rec, shape=a, rate=b)
+y <- 1/x
+ggplot(data=data_frame(rec, x, y)) + 
+      geom_line(aes(x=rec, y=x), color="blue") +
+      geom_line(aes(x=rec, y=y), color="red") + 
+      geom_text(data=data_frame(x=1, y=60000, label="X"), 
+                aes(x=x, y=y, label=label, fontface="bold"), color="blue") +
+      geom_text(data=data_frame(x=49, y=60000, label="Y"), 
+                aes(x=x, y=y, label=label, fontface="bold"), color="red") + 
+      theme(axis.ticks=element_blank(),
+            axis.title=element_blank())
+
+a <- 2
+b <- 5
+rec <- seq(from=0, to=2, by=0.001)
+set.seed(123456789)
+x <- dgamma(x=rec, shape=a, rate=b)
+y <- 1/x
+ggplot(data=data_frame(rec, x, y)) + 
+      geom_line(aes(x=rec, y=x), color="blue") +
+      geom_line(aes(x=rec, y=y), color="red") + 
+      geom_text(data=data_frame(x=1.99, y=0.04, label="X"), aes(x=x, y=y, label=label, fontface="bold"), color="blue") +
+      geom_text(data=data_frame(x=0.75, y=2, label="Y"), aes(x=x, y=y, label=label, fontface="bold"), color="red") +
+      coord_cartesian(ylim=c(0,2)) +
+      theme(axis.ticks=element_blank(),
+            axis.title=element_blank())
+
+a <- 5
+b <- .5
+rec <- seq(from=0, to=30, by=0.001)
+set.seed(123456789)
+x <- dgamma(x=rec, shape=a, rate=b)
+y <- 1/x
+ggplot(data=data_frame(rec, x, y)) + 
+      geom_line(aes(x=rec, y=x), color="blue") +
+      geom_line(aes(x=rec, y=y), color="red") +
+      geom_text(data=data_frame(x=29, y=0.3, label="X"),
+                aes(x=x, y=y, label=label, fontface="bold"), color="blue") +
+      geom_text(data=data_frame(x=4.5, y=15, label="Y"), 
+                aes(x=x, y=y, label=label, fontface="bold"), color="red") +
+      coord_cartesian(ylim=c(0,15)) +
+      theme(axis.ticks=element_blank(),
+            axis.title=element_blank())
+
+a <- 10
+b <- 10
+rec <- seq(from=0, to=2.5, by=0.001)
+set.seed(123456789)
+x <- dgamma(x=rec, shape=a, rate=b)
+y <- 1/x
+ggplot(data=data_frame(rec, x, y)) + 
+      geom_line(aes(x=rec, y=x), color="blue") +
+      geom_line(aes(x=rec, y=y), color="red") +
+      geom_text(data=data_frame(x=2.45, y=0.05, label="X"),
+                aes(x=x, y=y, label=label, fontface="bold"), color="blue") +
+      geom_text(data=data_frame(x=0.5, y=2, label="Y"),
+                aes(x=x, y=y, label=label, fontface="bold"), color="red") +
+      coord_cartesian(ylim=c(0,2)) +
+      theme(axis.ticks=element_blank(),
+            axis.title=element_blank())
+```
+
+
+# Ejercicio 2
+
+1. Sea $Y = \sum\limits_{i=1}^{n} X_i$
+$$M_Y(t) = E \left( e^{Yt} \right) = E \left( \exp \left\{ t \sum\limits_{i=1}^{n} X_i \right\} \right) = E \left( \prod\limits_{i=1}^{n} e^{t \, X_i}  \right) = \prod\limits_{i=1}^{n} E \left( e^{t \, X_i}  \right) = \prod\limits_{i=1}^{n} M_{X_i}(t) = \left[ M_X(t) \right]^{n}$$
+
+2. Si $X \sim \text{Exp}(\lambda) \Rightarrow M_Y(t) = \left[ \frac{ \lambda }{ \lambda - t } \right]^{n} \Rightarrow Y \sim \text{Gamma}(n; \, \lambda)$
+
+# Ejercicio 3
+
+1. Ley de esperanzas iteradas
+$$E_Y \Big[ E_{X|Y}(X|Y) \Big] = \int_Y E_{X|Y}(X|Y) \, f_Y(y) \, \text{d}y = \int_Y \left[ \int_X x \, f_{X|Y}(x|y) \, \text{d}x \right] \, f_Y(y) \, \text{d}y =$$
+$$= \int_Y \int_X x \, f_{X|Y}(x|y) \, f_Y(y) \, \text{d}x \, \text{d}y = \int_Y \int_X x \, f_{X;Y}(x;y) \, \text{d}x \, \text{d}y = \int_X x \left[ \int_Y f_{X;Y}(x;y) \text{d}y \right] \text{d}x =$$
+$$= \int_X x \, f_X(x) \text{d}x = E_X(X)$$
+
+2. Ley de varianzas iteradas
+$$V_X (X) = E_X \left[ \Big( X - E_X(X) \Big)^2 \right] = E_X \left[ \Big( X - E_{X|Y}(X|Y) + E_{X|Y}(X|Y) - E_X(X) \Big)^2 \right] =$$
+$$= E_X \Bigg[ \Big( X - E_{X|Y}(X|Y) \Big)^2 + \Big( E_{X|Y}(X|Y) - E_X(X) \Big)^2 + 2 \Big( X - E_{X|Y}(X|Y) \Big) \Big( E_{X|Y}(X|Y) - E_X(X) \Big) \Bigg] =$$
+$$= \underbrace{ E_X \Bigg[ \Big( X - E_{X|Y}(X|Y) \Big)^2 \Bigg] }_{ {\color{magenta} (1) } }  + \underbrace{ E_X \Bigg[ \Big( E_{X|Y}(X|Y) - E_X(X) \Big)^2 \Bigg] }_{ {\color{magenta} (2) } } + 2 \, \underbrace{ E_X \Bigg[ \Big( X - E_{X|Y}(X|Y) \Big) \Big( E_{X|Y}(X|Y) - E_X(X) \Big) \Bigg] }_{ {\color{magenta} (3) } }  $$
+$${\color{magenta} (1) } \:\: E_X \Bigg[ \Big( X - E_{X|Y}(X|Y) \Big)^2 \Bigg] = E_Y \left[ E_X \Bigg( \Big( X - E_{X|Y}(X|Y) \Big)^2 \Bigg) \Bigg| \, Y \right] = E_Y \Big( V_{X|Y} (X|Y) \Big)$$
+$${\color{magenta} (2) } \:\: E_X \Bigg[ \Big( E_{X|Y}(X|Y) - E_X(X) \Big)^2 \Bigg] = V_Y \Big( E_{X|Y}(X|Y) \Big)$$
+$${\color{magenta} (3) } \:\: E_X \Bigg[ \Big( X - E_{X|Y}(X|Y) \Big) \Big( E_{X|Y}(X|Y) - E_X(X) \Big) \Bigg] =$$
+$$= E_Y \left[ E_X \Bigg[ \Big( X - E_{X|Y}(X|Y) \Big) \Big( E_{X|Y}(X|Y) - E_X(X) \Big) \Bigg] \Bigg| \, Y \right] =$$
+$$= E_Y \left[ \Big( E_{X|Y}(X|Y) - E_X(X) \Big) E_X \Bigg[ \Big( X - E_{X|Y}(X|Y) \Big) \Bigg] \Bigg| \, Y \right] =$$
+$$= E_Y \left[ \Big( E_{X|Y}(X|Y) - E_X(X) \Big) \Big( E_{X|Y}(X|Y) - E_{X|Y}(X|Y) \Big)  \right] = 0$$
+Por lo tanto: $V_X(X) = E_Y \Big( V_{X|Y} (X|Y) \Big) +  V_Y \Big( E_{X|Y}(X|Y) \Big)$
+
+# Ejercicio 4
+
+1. 
+$$ E(Y) = \sum\limits_{Rec(Y)} y \, {{n}\choose{y}} \, \theta^{y} \, (1 - \theta)^{n-y} = \sum\limits_{y=0}^{n} y \, {{n}\choose{y}} \, \theta^{y} \, (1 - \theta)^{n-y} $$
+
+Pero si $y=0$ el primer t?rmino de la sumatoria es cero, por lo que podemos descartarlo, obteniendo:
+$$E(Y) = \sum\limits_{y=1}^{n} y \, {{n}\choose{y}} \, \theta^{y} \, (1 - \theta)^{n-y} = \sum\limits_{y=1}^{n} y \, \frac{ n! }{ y!(n-y)! } \, \theta^{y} \, (1 - \theta)^{n-y} =$$
+$$= \sum\limits_{y=1}^{n} \, \frac{ n(n-1)! }{ (y-1)!(n-y)! } \, \theta \, \theta^{y-1} \, (1 - \theta)^{n-y} = n \, \theta \sum\limits_{y=1}^{n} \, \frac{ (n-1)! }{ (y-1)!(n-y)! } \, \theta^{y-1} \, (1 - \theta)^{n-y}$$
+
+Se definen $a = y - 1 \Rightarrow y = a + 1$, y $b = n - 1 \Rightarrow n = b + 1$ de donde obtenemos los siguientes límites para la sumatoria:
+$$\begin{array}{c c c}
+y & = & 1 \\
+y & = & n 
+\end{array} \Rightarrow
+\begin{array}{c c c}
+a + 1 & = & 1 \\
+a + 1 & = & b + 1 
+\end{array} \Rightarrow
+\begin{array}{c c c}
+a & = & 0 \\
+a & = & b 
+\end{array}$$
+
+Luego entonces:
+$$ E(Y) = n \, \theta \sum\limits_{a=0}^{b} \, \frac{ b! }{ a!(b-a)! } \, \theta^{a} \, (1 - \theta)^{b-a} = n \, \theta \underbrace{ \sum\limits_{ Rec(A) } \, {{b}\choose{a} } \, \theta^{a} \, (1 - \theta)^{b-a} }_{\text{Bin}(b; \, \theta) } = n \, \theta $$
+
+2. Partimos de que $V(Y) = E(Y^2) - E^2(Y)$, y procedemos a calcular $E(Y^2)$ de forma análoga a la parte anterior:
+
+$$E \big[ Y(Y-1) \big] = \sum\limits_{Rec(Y)} y(y-1) {{n}\choose{y}} \theta^y (1-\theta)^{n-y} = \sum\limits_{y=1}^{n} y(y-1) \frac{ n(n-1)(n-2)! }{ y(y-1)(y-2)! (n-y)! } \theta^2 \, \theta^{y-2} (1-\theta)^{n-y} =$$
+$$= n(n-1) \, \theta^2 \sum\limits_{y=1}^{n} \frac{ (n-2)! }{ (y-2)! (n-y)! } \theta^{y-2} (1 - \theta)^{n-y} = n(n-1) \, \theta^2 \sum\limits_{a=0}^{n} {{b}\choose{a}} \theta^{a} (1 - \theta)^{b-a} = n(n-1) \, \theta^2$$
+
+Luego entonces:
+$$E \big[ Y(Y-1) \big] =  E \big[ Y^2 - Y \big] = E(Y^2) - E(Y) \Rightarrow n(n-1) \, \theta^2 = E(Y^2) - n \, \theta \Rightarrow E(Y^2) = n(n-1) \, \theta^2 + n \, \theta$$
+
+Por lo tanto:
+$$V(Y) = n(n-1) \, \theta^2 + n \, \theta - n^2 \, \theta^2 = n \, \theta \big[ (n-1) \, \theta + 1 - n \, \theta \big] = n \, \theta \big[ n \, \theta - \theta + 1 - n \, \theta \big] = n \, \theta \, (1 - \theta)$$
