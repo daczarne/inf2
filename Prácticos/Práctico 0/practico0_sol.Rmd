@@ -1,0 +1,204 @@
+---
+title: "Práctico 0 - Solución"
+author: "Daniel Czarnievicz"
+date: "September 9, 2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Ejercicio 1
+
+| Partido       | P(partido) | P(votó \| partido) | P(no votó \| partido) |
+|---------------|:----------:|:------------------:|:---------------------:|
+| Conservador   | 0.30       | 0.65               | 0.35                  |
+| Liberal       | 0.50       | 0.82               | 0.18                  |
+| Independiente | 0.20       | 0.50               | 0.50                  |
+
+## Parte a
+
+$$P(\text{liberal }|\text{ votó}) = \frac{ P(\text{liberal; votó}) }{ P( \text{votó} ) } = \frac{ P(\text{votó } | \text{ liberal}) \, P(\text{liberal}) }{ P(\text{votó}) } =$$
+$$= \frac{(0.82)(0.5)}{ (0.3)(0.65) + (0.5)(0.82) + (0.2)(0.5) } = \frac{82}{141} \approx 0.581$$
+
+## Parte b
+
+$$P(\text{liberal }|\text{ no votó}) = \frac{ P(\text{liberal; no votó}) }{ P( \text{no votó} ) } = \frac{ P(\text{no votó } | \text{ liberal}) \, P(\text{liberal}) }{ P(\text{no votó}) } =$$
+$$= \frac{(0.18)(0.5)}{ (0.3)(0.35) + (0.5)(0.18) + (0.2)(0.5) } = \frac{18}{59} \approx 0.305$$
+
+# Ejercicio 2
+
+9 monedas:
+
+- 3 monedas de dos caras
+- 4 monedas de dos cruces
+- 2 monedas comunes
+
+## Parte a
+
+$$P(\text{cara}) = \sum\limits_{ \substack{ \text{tipo de} \\ \text{moneda} }} P(\text{cara } | \text{ tipo de moneda}) \, P(\text{tipo de moneda}) = \frac{3}{9} \, (1) + \frac{4}{9} \, (0) + \frac{2}{9} \, (0.5) = \frac{4}{9} \approx 0.44 $$
+
+## Parte b
+
+$$P(\text{común } | \text{ cara}) = \frac{ P(\text{común; cara}) }{ P(\text{cara}) } = \frac{ P(\text{común } | \text{ cara}) \, P(\text{común}) }{ P(\text{cara}) } = \frac{ (0.5) \, \frac{2}{9} }{ \frac{4}{9} } = 0.25 $$
+
+## Parte c
+
+$$P(\text{común } | \, n \text{ caras} ) = \frac{ P(\text{común}; n \text{ caras}) }{ P(n \text{ caras }) } = \frac{ P(n \text{ caras} | \text{ común}) \, P(\text{común}) }{ P(n \text{ caras}) } = \frac{ (^1\!/_2)^n \, (^2\!/_9) }{ (^4\!/_9)^n } = \left( \frac{9}{8} \right)^n \, \left( \frac{2}{9} \right) $$
+
+# Ejercicio 3
+
+## Parte a y Parte b
+
+      Ocupación del Padre                        Ocupación del Hijo
+|                       | Agricultor | Operativo | Artesano | Ventas | Profesional | Mg. del padre ($Y_1$)        |
+|-----------------------|:----------:|:---------:|:--------:|:------:|:-----------:|:----------------------------:|
+| Agricultor            | 0.018      | 0.035     | 0.031    | 0.008  | 0.018       | `r .018+.035+.031+.008+.018` |
+| Operativo             | 0.002      | 0.112     | 0.064    | 0.032  | 0.069       | `r .002+.112+.064+.032+.069` |
+| Artesano              | 0.001      | 0.066     | 0.094    | 0.032  | 0.084       | `r .001+.066+.094+.032+.084` |
+| Ventas                | 0.001      | 0.018     | 0.019    | 0.010  | 0.051       | `r .001+.018+.019+.010+.051` |
+| Profesional           | 0.001      | 0.029     | 0.032    | 0.043  | 0.130       | `r .001+.029+.032+.043+.130` |
+| Mg. del hijo ($Y_2$)  | `r .018+.002+.001*3` | `r .035+.112+.066+.018+.029` | `r .031+.064+.094+.019+.032` | `r .008+.032*2+.01+.043` | `r .018+.069+.084+.051+.13` | 1 |
+
+## Parte c
+
+$$ P(Y_2 | Y_1 = \text{"Agricultor"}) = \frac{ P(Y_2; \, Y_1 = \text{"Agricultor"}) }{ P(Y_1 = \text{"Agricultor"}) } $$
+
+|            | Agricultor   | Operativo    | Artesano     | Ventas       | Profesional  |
+|------------|:------------:|:------------:|:------------:|:------------:|:------------:|
+| Agricultor | `r .018/.11` | `r .035/.11` | `r .031/.11` | `r .008/.11` | `r .018/.11` |
+
+## Parte d
+
+$$ P(Y_1 | Y_2 = \text{"Agricultor"}) = \frac{ P(Y_2; \, Y_1 = \text{"Agricultor"}) }{ P(Y_2 = \text{"Agricultor"}) } $$
+
+|                       | Agricultor    |
+|-----------------------|:-------------:|
+| Agricultor            | `r .018/.023` |
+| Operativo             | `r .002/.023` |
+| Artesano              | `r .001/.023` |
+| Ventas                | `r .001/.023` |
+| Profesional           | `r .001/.023` |
+
+\newpage
+
+# Ejercicio 4
+
+## Parte a
+
+$$E(a_1 \, Y_1 + a_2 \, Y_2) = E(a_1 \, Y_1) + E(a_2 \, Y_2) = a_1 \, E(Y_1) + a_2 \, E(Y_2) = a_1 \, \mu_1 + a_2 \, \mu_2$$
+
+$$V(a_1 \, Y_1 + a_2 \, Y_2) = V(a_1 \, Y_1) + V(a_2 \, Y_2) + 2 \, COV(a_1 \, Y_1; \, a_2 \, Y_2) =$$
+$$= a_1^2 \, V(Y_1) + a_2^2 \, V(Y_2) + 2 \, a_1 \, a_2 \, \underbrace{ COV(Y_1; \, Y_2) }_{ \substack{ =0 \text{ por} \\ \text{ independencia}} } = a_1^2 \, V(Y_1) + a_2^2 \, V(Y_2) = a_1^2 \, \sigma_1^2 + a_2^2 \, \sigma_2^2$$
+
+## Parte b
+
+$$ E(a_1 \, Y_1 - a_2 \, Y_2) = E(a_1 \, Y_1) - E(a_2 \, Y_2) = a_1 \, E(Y_1) - a_2 \, E(Y_2) = a_1 \, \mu_1 - a_2 \, \mu_2 $$
+
+$$ V(a_1 \, Y_1 - a_2 \, Y_2) = V(a_1 \, Y_1) + V(a_2 \, Y_2) - 2 \, COV(a_1 \, Y_1; \, a_2 \, Y_2) =$$
+$$= a_1^2 \, V(Y_1) + a_2^2 \, V(Y_2) - 2 \, a_1 \, a_2 \, \underbrace{ COV(Y_1; \, Y_2) }_{ \substack{ =0 \text{ por} \\ \text{ independencia}} } = a_1^2 \, V(Y_1) + a_2^2 \, V(Y_2) = a_1^2 \, \sigma_1^2 + a_2^2 \, \sigma_2^2 $$
+
+# Ejercicio 5
+
+## Parte a
+
+Por teorema de la multiplicidad:
+
+$$ p(x; y; z) = p(z) \, p(y | z) \, p(x | y; z) \Rightarrow $$
+
+$$\Rightarrow p(x | y; z) = \frac{ p(x; y; z) }{ p(z) \, p(z | y)} \propto \frac{ f(x; z) \, g(y; z) \, h(z) }{ p(z) \, \frac{ p(z; y) }{ p(z) }} = \frac{ f(x; z) \, g(y; z) \, h(z) }{ p(z;y) } \propto \frac{ f(x;z) \, g(y;z) \, h(z) }{ g(z;y) } =$$
+
+$$= f(x;z) \, h(z) \propto f(x;z) \Rightarrow \boxed{ p(x | y; z) \propto f(x; z) }$$
+
+\newpage
+
+Otra solución:
+
+$$ \begin{array}{r c l}
+p(x; y; z) & \propto & f(x; z) \, g(y; z) \, h(z) \\
+\\
+\int_Y p(x; y; z) dy & \propto & \int_Y f(x; z) \, g(y; z) \, h(z) dy \\
+\\
+\int_Y p(x; y; z) dy & \propto & f(x; z) \, h(z) \, \int_Y g(y; z) dy \\
+\\
+p(x; z) & \propto & f(x; z) \, h(z) \, p(z) \\
+\\
+\frac{ p(x; z) }{ p(z) } & \propto & f(x; z) \, h(z) \\
+\\
+p(x | z) & \propto & f(x; z) \, h(z) \\
+\\
+p(x | y; z) & \propto & f(x; z) \, h(z) \\
+\\
+p(x | y; z) & \propto & f(x; z)
+\end{array} $$
+
+## Parte b
+
+Por teorema de la multiplicidad:
+
+$$p(x; y; z) = p(x) \, p(z | x) \, p(y | x; z) \Rightarrow$$
+
+$$\Rightarrow p(y | x; z) = \frac{ p(x; y; z) }{ p(x) \, p(z | x) } \propto \frac{ f(x;z) \, g(y;z) \, h(z) }{ p(x) \, \frac{ p(z; x)}{ p(x) } } = \frac{ f(x; z) \, g(y; z) \, h(z) }{ p(z; x)} \propto \frac{ f(x; z) \, g(y; z) \, h(z) }{ f(z; x)} =$$
+
+$$= g(y; z) \, h(z) \propto g(y; z) \Rightarrow \boxed{ p(y | x; z) \propto g(y; z) }$$
+
+## Parte c
+
+$$ p(x;y | z) = \frac{ p(x;y;z) }{ p(z) } \propto \frac{ f(x;z) \, g(y;z) \, h(z) }{ p(z) } = \frac{ \overbrace{ f(x;z) }^{ \propto \, p(x;z) } }{ p(z) } \, \underbrace{ g(y;z) }_{ \, \propto p(y;z) } \, \overbrace{ h(z) }^{ \propto \, p(z) } \propto \frac{ p(x;z) }{ p(z) } \, p(y;z) \, p(z) =$$
+
+$$= p(x | z) \, p(y | z) \, p(z) \, p(z) \propto p(x | z) \, p(y | z) $$
+
+\newpage
+
+# Ejercicio 6
+
+## Parte a
+
+$$ E(y) = E_n \big[ E_Y (y | n)  \big] = E_n \big[ n \, p  \big] = \lambda \, p $$
+
+## Parte b
+
+$$V(y) = V_n \big[ E_Y(y | n) \big] + E_n \big[ V_Y(y | n) \big] = V_n \big[ n \, p \big] + E_n \big[ n \, p \, (1-p) \big] = p^2 \, V_n \big[ n \big] + p \, (1-p) E_n \big[ n \big] =$$
+$$= p^2 \, \lambda + p \, (1-p) \lambda = p^2 \, \lambda + \lambda \, p - p^2 \lambda = p^2 \, \lambda $$
+
+## Parte c
+
+$$ p(y;n) = p(y | n) \, p (n) = { {n}\choose{y} } \, p^y \, (1-p)^{n-y} \, \text{I}_{ [ y \in \mathbb{N}_0 ] } \: \frac{ e^{-\lambda} \, \lambda^n }{ n! } \text{I}_{ [ n \in \mathbb{N}_0 ] } $$
+
+$$ p(y) = \sum\limits_{n = 0}^{+ \infty} p(y;n) = \sum\limits_{n = 0}^{+ \infty} p(y | n) \, p(n) = \sum\limits_{n = 0}^{+ \infty} { {n}\choose{y} } \, p^y \, (1-p)^{n-y} \, \text{I}_{ [ y \in \mathbb{N}_0 ] } \: \frac{ e^{-\lambda} \, \lambda^n }{ n! } =$$
+
+$$= \frac{ e^{-\lambda} \, p^y \, \lambda^y }{ y! } \sum\limits_{n = 0}^{+ \infty} \frac{ \Big( \lambda (1-p) \Big)^{n-y} }{ (n-y)! } $$
+
+Sean $x = n - y$ y $A = \lambda (1 - p)$, entonces:
+
+$$= \frac{ e^{-\lambda} \, p^y \, \lambda^y }{ y! } \sum\limits_{x = -y}^{+ \infty} \frac{ A^x }{ x! } = \frac{ e^{-\lambda} \, p^y \, \lambda^y }{ y! } e^A = \frac{ e^{-\lambda} \, p^y \, \lambda^y }{ y! } e^{\lambda (1 - p)} = \frac{ e^{-\lambda p} \, (\lambda p)^y }{ y! }  $$
+Por lo tanto, $y \sim \text{Poisson}(\lambda p)$ (asumiendo que no pasa nada al sumar desde $x=-y$ ... consultar!)
+
+
+## Ejercicio 7
+
+Probar la regla de Bayes  
+$$  p(H_j | E) = \frac{p(E|H_j) \, p(H_j)}{\sum\limits_{k=1}^{K} p(E|H_k) \, p(H_k)}$$
+Sabiendo que se cumple $P(A|B)=\frac{p(A \cap B)}{p(B)}$ para cualesquiera sucesos $A$ y $B$, donde $E$ es un evento cualquiera y ${H_1, \cdots,H_k}$ forman una partición de $\Omega$.
+
+*Demostración:*
+
+$$ p(H_j | E) = \frac{p(H_j;E)}{p(E)} = \frac{p(E|H_j) \, p(H_j)}{\sum_{k=1}^{K} p(E;H_k)} = \frac{p(E|H_j) \, p(H_j)}{\sum\limits_{k=1}^{K} p(E|H_k) \, p(H_k)} $$
+
+\newpage
+
+# Ejercicio 7
+
+## Parte a
+
+      X     Y
+|   | 1                  | 0                  |
+|---|:------------------:|:------------------:|
+| 1 | $(0.5)(0.4) = 0.2$ | $(0.5)(0.6) = 0.3$ |
+| 0 | $(0.5)(0.6) = 0.3$ | $(0.5)(0.4) = 0.2$ |
+
+## Parte b
+
+$$E(Y) = \sum\limits_{Y} y \, p(y) = (1) \, p(y) + (0) \, p(y) = p(y) = \sum\limits_{X} p(x;y) = P(\text{verde } | \text{ cara}) \, P(\text{cara}) + P(\text{verde } | \text{ cruz}) \, P(\text{cruz}) =$$
+$$= (0.5)(0.4) + (0.5)(0.6) = 0.5 $$
