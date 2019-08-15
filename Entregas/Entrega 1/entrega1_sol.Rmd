@@ -1,0 +1,317 @@
+---
+title: "Entrega 1 - Inferencia II"
+author: "Daniel Czarnievicz"
+date: "September 2017"
+output: pdf_document
+header-includes:
+   - \usepackage{mathrsfs}
+---
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo=TRUE)
+library(tidyverse)
+library(ggthemes)
+```
+
+## Ejercicio 1
+Sea $\phi \sim \text{Gamma} (\alpha; \,\beta)$. 
+
+1. Obtener la distribución de $\sigma^2 = 1/\phi$.
+
+$$\sigma^2 = \frac{1}{\phi} \Rightarrow \phi = \frac{1}{\sigma^2} \Rightarrow \frac{\partial \phi}{\partial \sigma^2} = - \frac{1}{(\sigma^2)^2}$$
+$$f_{\phi}(\phi) = \frac{\beta^{\alpha}}{\Gamma(\alpha)} \: \phi^{\alpha-1} \: \exp\big\{ -\beta \, \phi \big\} \: \text{I}_{[\phi \geq 0]}$$
+$$f_{\sigma^2}(\sigma^2) = \frac{\beta^{\alpha}}{\Gamma(\alpha)} \: \left( \frac{1}{\sigma^2} \right)^{\alpha-1} \: \exp\left\{ - \frac{\beta}{\sigma^2} \right\} \: \text{I}_{\left[\frac{1}{\sigma^2} \geq 0 \right]} \Bigg| - \frac{1}{(\sigma^2)^2} \Bigg|  = \frac{\beta^{\alpha}}{\Gamma(\alpha)} \: \left( \frac{1}{\sigma^2} \right)^{(\alpha+2) - 1} \: \exp\left\{ - \frac{\beta}{\sigma^2} \right\} \: \text{I}_{\left[ \sigma^2 > 0 \right]}$$
+Por lo tanto:
+$$\color{blue}\boxed{ \sigma^2 \sim \text{invGamma}(\alpha; \; \beta) }$$
+\vspace{0.5cm}
+
+2. Para $\alpha=\beta=1$, dibujar la densidad de $\phi$ y $\sigma^2$ en figuras distintas.
+
+\vspace{0.5cm}
+
+```{r}
+alpha <- beta <- 1
+x <- seq(0, 10, 0.001)
+phi <- dgamma(x, shape=alpha, scale=1/beta)
+sigma2 <- dgamma(1/x, shape=alpha+2, scale=1/beta)
+```
+
+```{r, echo=FALSE, fig.align="default", fig.width=6, fig.asp=0.618, out.width="50%"}
+midata <- data.frame(x, phi, sigma2)
+ggplot(midata) + 
+      geom_line(aes(x=x, y=phi), color="red") +
+      scale_x_continuous(quote(phi)) +
+      labs(title=expression(paste(phi, " ~ Gamma(", alpha, " = 1; ", beta, " = 1)")) ) +
+      theme(legend.position="none",
+            plot.title=element_text(hjust=0.5),
+            axis.title.x=element_text(face="bold"), 
+            axis.ticks=element_blank(),
+            axis.title.y=element_blank())
+
+ggplot(midata) + 
+      geom_line(aes(x=x, y=sigma2), color="blue") +
+      scale_x_continuous(quote(sigma^2)) +
+      labs(title=expression(paste(sigma^2, " ~ invGamma(", alpha, " = 3; ", beta, " = 1)")) ) +
+      theme(legend.position="none",
+            plot.title=element_text(hjust=0.5),
+            axis.title.x=element_text(face="bold"), 
+            axis.ticks=element_blank(),
+            axis.title.y=element_blank())
+```
+
+\newpage
+3. Simular 10,000 realizaciones de $\phi$ y usarlas para obtener valores simulados de $\sigma^2$. Luego dibujar histogramas de cada conjunto de simulaciones por separado.
+
+\vspace{0.5cm}
+```{r}
+set.seed(123456789)
+phi <- rgamma(10000, shape=alpha, scale=1/beta)
+sigma2 <- 1/phi
+```
+
+```{r, echo=FALSE, fig.align="default", fig.width=6, fig.asp=0.618, out.width="50%"}
+midata <- data.frame(cbind(phi, sigma2))
+ggplot(midata) + 
+      geom_histogram(aes(phi), fill="#e34a33", bins=100) +
+      scale_x_continuous(quote(phi)) +
+      coord_cartesian(xlim=c(0,10)) + 
+      labs(title=expression(paste("Histograma de ", phi))) +
+      theme(axis.title.y=element_blank(),
+            plot.title=element_text(hjust=0.5),
+            axis.title.x=element_text(face="bold"),
+            axis.ticks=element_blank())
+
+ggplot(filter(midata, sigma2 < 10)) + 
+      geom_histogram(aes(sigma2), fill="#2b8cbe", bins=100) +
+      scale_x_continuous(quote(sigma^2)) +
+      coord_cartesian(xlim=c(0,10)) + 
+      labs(title=expression(paste("Histograma de ", sigma^2))) +
+      theme(axis.title.y=element_blank(),
+            plot.title=element_text(hjust=0.5),
+            axis.title.x=element_text(face="bold"), 
+            axis.ticks=element_blank())
+```
+
+4. Repetir el procedimiento para $\alpha = \beta = 2$ y $\alpha = \beta = 0.5$.
+
+\vspace{0.5cm}
+
+```{r}
+alpha <- beta <- 2
+x <- seq(0, 10, 0.001)
+phi <- dgamma(x, shape=alpha, scale=1/beta)
+sigma2 <- dgamma(1/x, shape=alpha+2, scale=1/beta)
+```
+```{r, echo=FALSE, fig.align="default", fig.width=6, fig.asp=0.618, out.width="50%"}
+midata <- data.frame(x, phi, sigma2)
+ggplot(midata) + 
+      geom_line(aes(x=x, y=phi), color="red") +
+      scale_x_continuous(quote(phi)) +
+      labs(title=expression(paste(phi, " ~ Gamma(", alpha, " = 2; ", beta, " = 2)")) ) +
+      theme(legend.position="none",
+            plot.title=element_text(hjust=0.5),
+            axis.title.x=element_text(face="bold"), 
+            axis.ticks=element_blank(),
+            axis.title.y=element_blank())
+
+ggplot(midata) + 
+      geom_line(aes(x=x, y=sigma2), color="blue") +
+      scale_x_continuous(quote(sigma^2)) +
+      labs(title=expression(paste(sigma^2, " ~ invGamma(", alpha, " = 5; ", beta, " = 2)")) ) +
+      theme(legend.position="none",
+            plot.title=element_text(hjust=0.5),
+            axis.title.x=element_text(face="bold"), 
+            axis.ticks=element_blank(),
+            axis.title.y=element_blank())
+```
+\newpage
+```{r}
+set.seed(123456789)
+phi <- rgamma(10000, shape=alpha, scale=1/beta)
+sigma2 <- 1/phi
+```
+
+```{r, echo=FALSE, fig.align="default", fig.width=6, fig.asp=0.618, out.width="50%"}
+midata <- data.frame(cbind(phi, sigma2))
+ggplot(midata) + 
+      geom_histogram(aes(phi), fill="#e34a33", bins=100) +
+      scale_x_continuous(quote(phi)) +
+      coord_cartesian(xlim=c(0,10)) + 
+      labs(title=expression(paste("Histograma de ", phi))) +
+      theme(axis.title.y=element_blank(),
+            plot.title=element_text(hjust=0.5),
+            axis.title.x=element_text(face="bold"),
+            axis.ticks=element_blank())
+
+ggplot(filter(midata, sigma2 < 10)) + 
+      geom_histogram(aes(sigma2), fill="#2b8cbe", bins=100) +
+      scale_x_continuous(quote(sigma^2)) +
+      coord_cartesian(xlim=c(0,10)) + 
+      labs(title=expression(paste("Histograma de ", sigma^2))) +
+      theme(axis.title.y=element_blank(),
+            plot.title=element_text(hjust=0.5),
+            axis.title.x=element_text(face="bold"), 
+            axis.ticks=element_blank())
+```
+
+```{r}
+alpha <- beta <- 1/2
+x <- seq(0, 10, 0.001)
+phi <- dgamma(x, shape=alpha, scale=1/beta)
+sigma2 <- dgamma(1/x, shape=alpha+2, scale=1/beta)
+```
+
+```{r, echo=FALSE, fig.align="default", fig.width=6, fig.asp=0.618, out.width="50%"}
+midata <- data.frame(x, phi, sigma2)
+ggplot(midata) + 
+      geom_line(aes(x=x, y=phi), color="red") +
+      scale_x_continuous(quote(phi)) +
+      labs(title=expression(paste(phi, " ~ Gamma(", alpha, " = 1/2; ", beta, " = 1/2)")) ) +
+      theme(legend.position="none",
+            plot.title=element_text(hjust=0.5),
+            axis.title.x=element_text(face="bold"), 
+            axis.ticks=element_blank(),
+            axis.title.y=element_blank())
+
+ggplot(midata) + 
+      geom_line(aes(x=x, y=sigma2), color="blue") +
+      scale_x_continuous(quote(sigma^2)) +
+      labs(title=expression(paste(sigma^2, " ~ invGamma(", alpha, " = 5/2; ", beta, " = 1/2)")) ) +
+      theme(legend.position="none",
+            plot.title=element_text(hjust=0.5),
+            axis.title.x=element_text(face="bold"), 
+            axis.ticks=element_blank(),
+            axis.title.y=element_blank())
+```
+
+```{r}
+set.seed(123456789)
+phi <- rgamma(10000, shape=alpha, scale=1/beta)
+sigma2 <- 1/phi
+```
+
+```{r, echo=FALSE, fig.align="default", fig.width=6, fig.asp=0.618, out.width="50%"}
+midata <- data.frame(cbind(phi, sigma2))
+ggplot(midata) + 
+      geom_histogram(aes(phi), fill="#e34a33", bins=100) +
+      scale_x_continuous(quote(phi)) +
+      coord_cartesian(xlim=c(0,10)) + 
+      labs(title=expression(paste("Histograma de ", phi))) +
+      theme(axis.title.y=element_blank(),
+            plot.title=element_text(hjust=0.5),
+            axis.title.x=element_text(face="bold"),
+            axis.ticks=element_blank())
+
+ggplot(filter(midata, sigma2 < 10)) + 
+      geom_histogram(aes(sigma2), fill="#2b8cbe", bins=100) +
+      scale_x_continuous(quote(sigma^2)) +
+      coord_cartesian(xlim=c(0,10)) + 
+      labs(title=expression(paste("Histograma de ", sigma^2))) +
+      theme(axis.title.y=element_blank(),
+            plot.title=element_text(hjust=0.5),
+            axis.title.x=element_text(face="bold"), 
+            axis.ticks=element_blank())
+```
+
+## Ejercicio 2
+
+Supongamos que $Y_i \stackrel{iid}{\sim} \text{Poisson}(\lambda)$ con $\lambda \sim \text{Gamma}(a,b)$, esto es: 
+$$p(y) = \frac{ e^{-\lambda} \, \lambda^{y} }{ y! } \, \text{I}_{[y \in \mathbb{N}_0]}$$
+$$p(\lambda)= \frac{b^{a}}{\Gamma(a)}\, \lambda^{a-1} \, e^{ - b \, \lambda } \, \text{I}_{[ \lambda \geq 0 ]}$$
+Por otro lado, sea $\tilde{y} \sim \text{Poisson}(\lambda)$, es decir una observación futura, que suponemos condicionalmente independiente respecto a $y|\lambda$.
+
+1. Encuentre la posterior $p(\lambda|y)$ donde $y=(y_1;\ldots; y_n)$.
+
+$$p(\lambda | y) = \frac{p(\lambda; \, y)}{p(y)} = \frac{p(y|\lambda) \, p(\lambda)}{p(y)}$$
+Luego entonces, la distribución en el muestreo es:
+$$p(y | \lambda) = \mathscr{L}(y | \lambda) = \prod\limits_{i=1}^{n} p(y_i | \lambda) = \prod\limits_{i=1}^{n} \frac{e^{-\lambda} \, \lambda^{y_i}}{y_i !} \text{I}_{[y_i \in \mathbb{N}_0]} = \frac{ e^{-n\lambda} \: \lambda^{\sum\limits_{i=1}^{n} y_i }}{ \prod\limits_{i=1}^{n} y_i ! } \prod\limits_{i=1}^{n} \text{I}_{[y_i \in \mathbb{N}_0]}$$
+La probabilidad de $y$ se consigue integrando:
+$$p(y) = \int\limits_{Rec(\lambda)} p(y; \, \lambda) \, \text{d} \lambda = \int\limits_{Rec(\lambda)} p(y | \lambda) \, p(\lambda) \, \text{d} \lambda = 
+\int\limits_{Rec(\lambda)}\frac{ e^{-n\lambda} \: \lambda^{\sum\limits_{i=1}^{n} y_i }}{ \prod\limits_{i=1}^{n} y_i ! } \prod\limits_{i=1}^{n} \text{I}_{[y_i \in \mathbb{N}_0]} \, \frac{ b^{a} }{ \Gamma(a) } \, \lambda^{a-1} \, e^{ - b \, \lambda } \, \text{I}_{[ \lambda \geq 0 ]} \, \text{d} \lambda =$$
+$$= \frac{b^{a}}{\Gamma(a)} \, \left( \prod\limits_{i=1}^{n} \frac{ \text{I}_{[y_i \in \mathbb{N}_0]}}{ y_i !} \right) \underbrace{ \int\limits_{0}^{+\infty} e^{-(b+n)\lambda} \,  \lambda^{ \sum\limits_{i=1}^{n} y_i + a - 1} \text{d} \lambda}_{ = \left(\frac{(n+b)^{\sum\limits_{i=1}^{n} y_i + a}}{\Gamma\left(\sum\limits_{i=1}^{n} y_i + a \right)}\right)^{-1}} = \frac{b^{a}}{\Gamma(a)} \, \left( \prod\limits_{i=1}^{n} \frac{ \text{I}_{[y_i \in \mathbb{N}_0]}}{ y_i !} \right) \, \frac{\Gamma\left(\sum\limits_{i=1}^{n} y_i + a \right)}{(n+b)^{\sum\limits_{i=1}^{n} y_i + a}}$$
+
+Por lo tanto, la probabilidad posterior $p(\lambda | y)$ es\footnote{A esta misma conclusión podría llegarse utilizando la proporcionalidad, dado que ya identificamos el kernel correspondiente.}: 
+$$p(\lambda | y) = \frac{ e^{-n\lambda} \, \lambda^{ \sum\limits_{i=1}^{n} y_i } \left( \prod\limits_{i=1}^{n} \frac{\text{I}_{[y_i \in \mathbb{N}_0]}}{y_i !} \right) \, \frac{ b^{a} }{ \Gamma(a) } \, \lambda^{a-1} \, e^{ - b \, \lambda } \, \text{I}_{[ \lambda \geq 0 ]}}{ \frac{b^{a}}{\Gamma(a)} \, \left( \prod\limits_{i=1}^{n} \frac{ \text{I}_{[y_i \in \mathbb{N}_0]}}{ y_i !} \right) \, \frac{\Gamma\left(\sum\limits_{i=1}^{n} y_i + a \right)}{(n+b)^{\sum\limits_{i=1}^{n} y_i + a}}} = \frac{ (n+b)^{\sum\limits_{i=1}^{n} y_i + a)} }{ \Gamma \left( \sum\limits_{i=1}^{n} y_i + a \right) } \, \lambda^{ \sum\limits_{i=1}^{n} y_i + a - 1} \, e^{-(n+b)\lambda} \, \text{I}_{[ \lambda \geq 0 ]}$$
+Con lo cual:
+$$\color{blue}\boxed{ \lambda | y \sim  \text{Gamma} \left(\sum\limits_{i=1}^{n} y_i + a; \, n + b \right) }$$
+\vspace{0.5cm}
+
+2. Para $y = (4; 4; 5; 8; 3)'$ y $a = b = 1$, dibujar la previa y la posterior de $\lambda$.
+
+\vspace{0.5cm}
+
+```{r}
+y <- c(4,4,5,8,3)
+n <- length(y)
+a <- b <- 1
+x <- seq(0, 10, by=0.001)
+previa <- dexp(x, rate=b)
+posterior <-dgamma(x, shape=(sum(y)+a), scale=1/(n+b))
+```
+
+```{r, echo=FALSE, fig.align="default", fig.width=6, fig.asp=0.618, out.width="50%"}
+midata <- data.frame(x, previa, posterior)
+ggplot(midata) + 
+      geom_line(aes(x=x, y=previa), color="red") +
+      scale_x_continuous(quote(lambda)) +
+      labs(title=expression(paste(lambda, " ~ Exp(", 1, ")"))) +
+      theme(legend.position="none",
+            plot.title=element_text(hjust=0.5),
+            axis.title.x=element_text(face="bold"), 
+            axis.ticks=element_blank(),
+            axis.title.y=element_blank())
+
+ggplot(midata) + 
+      geom_line(aes(x=x, y=posterior), color="blue") +
+      scale_x_continuous(quote(lambda)) +
+      labs(title=expression(paste(lambda, " ~ Gamma(", alpha, " = 25; ", beta, " = 6)"))) +
+      theme(legend.position="none",
+            plot.title=element_text(hjust=0.5),
+            axis.title.x=element_text(face="bold"), 
+            axis.ticks=element_blank(),
+            axis.title.y=element_blank())
+```
+
+3. Derivar $p(\tilde{y})$ y $p(\tilde{y}|y)$, la distribución predictiva previa y posterior respectivamente. Dibujar ambas distribuciones en el mismo gráfico.
+
+$${\color{red} \star} \: \: p(\tilde{y}) = \int\limits_{Rec(\lambda)} p(\tilde{y}; \, \lambda) \, \text{d}\lambda = \int\limits_{Rec(\lambda)} p(\tilde{y} \, | \, \lambda) \, p(\lambda) \, \text{d}\lambda = \int\limits_{Rec(\lambda)} \frac{ e^{-\lambda} \, \lambda^{\tilde{y}} }{ \tilde{y}! } \, \text{I}_{[\tilde{y} \in \mathbb{N}_0]} \, \frac{ b^a }{ \Gamma(a) } \, \lambda^{a-1} \, e^{-b \, \lambda } \text{d}\lambda =$$
+$$= \frac{ b^a }{ \Gamma(a) } \, \frac{ \text{I}_{[\tilde{y} \in \mathbb{N}_0]} }{ \tilde{y}! } \int\limits_{Rec(\lambda)} \lambda^{\tilde{y} + a - 1} e^{-(b+1) \lambda} \, \text{d}\lambda = \frac{ b^a }{ \Gamma(a) } \, \frac{ \text{I}_{[\tilde{y} \in \mathbb{N}_0]} }{ \tilde{y}! } \, \frac{ \Gamma( \tilde{y} + a ) }{ (b+1)^{\tilde{y} + a} } =$$
+$$= \frac{ \Gamma( \tilde{y} + a ) }{ \tilde{y}! \, \Gamma(a) } \, \frac{ b^a }{ (b+1)^{\tilde{y} + a} } \, \text{I}_{[\tilde{y} \in \mathbb{N}_0]} = \frac{ (\tilde{y} + a - 1 )! }{ \tilde{y}! \, (a - 1)! } \left[ \frac{ b }{ b+1 } \right]^a \left[ \frac{1}{ b+1 } \right]^{\tilde{y}} \, \text{I}_{[\tilde{y} \in \mathbb{N}_0]}$$
+Por lo tanto:
+$$\color{blue}\boxed{ \tilde{y} \sim \text{BN} \left(a; \, \frac{b}{b+1} \right) }$$
+$${\color{red} \star} \: \: p(\tilde{y} | y) = \int\limits_{Rec(\lambda)} p(\tilde{y}, \, \lambda \, | \, y) \, \text{d}\lambda = \int\limits_{Rec(\lambda)} p(\tilde{y} \, | \, \lambda, \, y) \, p(\lambda \, | \, y) \, \text{d}\lambda = \int\limits_{Rec(\lambda)} p(\tilde{y} \, | \, \lambda) \, p(\lambda \, | \, y) \, \text{d}\lambda =$$
+$$= \int\limits_{Rec(\lambda)} \frac{ e^{-\lambda} \, \lambda^{\tilde{y}} }{ \tilde{y}! } \, \text{I}_{[\tilde{y} \in \mathbb{N}_0 ]} \: \frac{ (n+b)^{\sum\limits_{i=1}^{n} y_i + a} }{ \Gamma \left( \sum\limits_{i=1}^{n} y_i + a \right) } \lambda^{\sum\limits_{i=1}^{n} y_i + a - 1}  \exp\big\{ -(n+b) \lambda \big\} \: \text{I}_{[\lambda \geq 0]} \: \text{d}\lambda =$$
+$$= \left[ \frac{\text{I}_{[\tilde{y} \in \mathbb{N}_0 ]}}{ \tilde{y}! } \right] \left[ \frac{ (n+b)^{\sum\limits_{i=1}^{n} y_i + a} }{ \Gamma \left( \sum\limits_{i=1}^{n} y_i + a \right) } \right] \underbrace{ \int\limits_{0}^{+\infty} \lambda^{ \sum\limits_{i=1}^{n} y_i + a + \tilde{y} - 1 } \exp\big\{ -(n+b+1) \lambda \big\} \, \text{d} \lambda }_{ \text{kernel de una Gamma} \left( \sum\limits_{i=1}^{n} y_i + a + \tilde{y}; \, n+b+1 \right) } =$$
+$$= \left[ \frac{\text{I}_{[\tilde{y} \in \mathbb{N}_0 ]}}{ \tilde{y}! } \right] \left[ \frac{ (n+b)^{\sum\limits_{i=1}^{n} y_i + a} }{ \Gamma \left( \sum\limits_{i=1}^{n} y_i + a \right) } \right] \left[ \frac{ \Gamma \left( \sum\limits_{i=1}^{n} y_i + a +\tilde{y} \right) }{ (n+b+1)^{\sum\limits_{i=1}^{n} y_i + a + \tilde{y}} } \right] =$$
+Asumiendo que $a \in \mathbb{N}$ y $b \in \mathbb{N}$:
+$$= \text{I}_{[\tilde{y} \in \mathbb{N}_0 ]} \left[ \frac{ \left( \sum\limits_{i=1}^{n} y_i + a +\tilde{y} - 1 \right) ! }{ \tilde{y}! \, \left( \sum\limits_{i=1}^{n} y_i + a - 1 \right) ! } \right] \left[ \frac{ n+b }{ n+b+1 } \right]^{\sum\limits_{i=1}^{n} y_i + a} \left[ \frac{1}{n+b+1} \right]^{\tilde{y}} =$$
+$$= \text{I}_{[\tilde{y} \in \mathbb{N}_0 ]} \left( \begin{array}{c} \sum\limits_{i=1}^{n} y_i + a + \tilde{y} - 1 \\ \sum\limits_{i=1}^{n} y_i + a - 1 \end{array} \right) \left[ \frac{ n+b }{ n+b+1 } \right]^{\sum\limits_{i=1}^{n} y_i + a} \left[ \frac{1}{n+b+1} \right]^{\tilde{y}}$$
+Por lo tanto:
+$$\color{blue}\boxed{ \tilde{y} | y \sim \text{BN}\left( \sum\limits_{i=1}^{n} y_i + a; \, \frac{ n+b }{ n+b+1 } \right) }$$
+
+```{r}
+y <- c(4,4,5,8,3)
+n <- length(y)
+a <- b <- 1
+x <- seq(0, 100, by=1)
+previa <- dnbinom(x, size=a, prob=b/(b+1))
+posterior <- dnbinom(x, size=sum(y)+a, prob=(n+b)/(n+b+1))
+```
+
+```{r, echo=FALSE, fig.align="center", fig.width=6, fig.asp=0.618, out.width="70%"}
+miprevia <- data.frame(x, valor=previa, disti=rep("Previa", length(x)))
+miposterior <- data.frame(x, valor=posterior, disti=rep("Posterior", length(x)))
+midata <- data.frame(rbind(miprevia, miposterior))
+ggplot(midata) + 
+      geom_col(aes(x=x, y=valor, fill=disti), position="dodge") + 
+      coord_cartesian(xlim=c(0,20)) + 
+      labs(title="Cuantías",
+           x=quote(tilde(y))) + 
+      guides(fill=guide_legend(element_blank())) + 
+      theme_stata() + 
+      theme(plot.title=element_text(hjust=0.5),
+            axis.title.y=element_blank(),
+            axis.ticks=element_blank(),
+            axis.title.x=element_text(face="bold"),
+            legend.position=c(.9,.8))
+```

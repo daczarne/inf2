@@ -1,0 +1,267 @@
+---
+title: "Inferencia II - Entrega 3"
+author: "Daniel Czarnievicz"
+date: "October 2017"
+header-includes:
+   - \usepackage{mathrsfs}
+   - \setlength{\parskip}{1em}
+   - \usepackage{fancyhdr}
+   - \pagestyle{fancy}
+   - \lhead{Inferencia II - Entrega 3}
+   - \rhead{Daniel Czarnievicz}
+geometry: margin=2cm
+output: pdf_document
+---
+
+```{r setup, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggthemes)
+library(HDInterval)
+library(rstan)
+library(ggrepel)
+library(gridExtra)
+```
+
+Considere nuevamente los datos:
+
+```{r airline_fatalities, results="asis", echo=FALSE}
+d <- data.frame(year = as.character(1976:1985),
+                fatal_accidents = c(24, 25, 31, 31, 22, 21, 26, 20, 16, 22),
+                passenger_deaths = c(734, 516, 754, 877, 814, 362, 764, 809, 223, 1066),
+                death_rate = c(0.19, 0.12, 0.15, 0.16, 0.14, 0.06, 0.13, 0.13, 0.03, 0.15)) %>% mutate(miles_flown = passenger_deaths/death_rate) # 100 million miles
+knitr::kable(d, format="markdown", align="c", caption="Airline fatalities", digits=2, col.names=c("Year", "Fatal accidents", "Passenger deths", "Death rate", "Miles flown"), format.args=list(big.mark=".", decimal.mark=","))
+```
+
+El objetivo es modelar la tasa de accidentes fatales por millas voladas. Para esto consideramos el modelo
+$$y_i\stackrel{ind}{\sim} \text{Poisson}(x_i \lambda_i)$$
+donde $y_i$ es el n?mero de accidentes fatales en cada a?o, $x_i$ es el total de millas voladas en cada a?o y $\lambda_i$ es la tasa sobre la que nos interesa realizar inferencia. 
+
+# Ejercicio 1
+
+Supongamos previas independientes para cada a?o, 
+$$\lambda_i\stackrel{ind}{\sim} \text{Exp}(t)$$
+donde $t$ es un valor conocido.
+
+1. Muestra que los $\lambda_i$ tambi?n son independientes en la distribuci?n posterior.  
+
+$$ p(\lambda | t; \, x; \, y) = \frac{p(\lambda;\, y | t, \, x)}{p(y | \, t, \, x)} \propto \, p(y| \, \lambda, \, t, \, x) \, p(\lambda|\, t, \, x) = $$
+$$ = \prod_{i=|}^{10} p(y_i| \, \lambda_i, \, t, \, x_i) \, p(\lambda_i|\, t, \, x_i) = \prod_{i=1}^{10} \frac{e^{-x_i \, \lambda_i} (\lambda_i x_i)^{y_i}}{y_i!} t e^{-t\lambda_i} \text{I}_{[y_i \in \mathbb{N}_0]}\text{I}_{[\lambda_i \geq 0]} \propto $$
+$$\propto \prod_{i=1}^{10} e^{-(x_i + t)\lambda_i} \, \lambda_i ^ {y_i} \, \text{I}_{[\lambda_i \geq 0]} = \prod_{i=1}^{10} \underbrace{e^{-(x_i + t)\lambda_i} \, \lambda_i ^ {(y_i + 1) - 1} \, \text{I}_{[\lambda_i \geq 0]}}_{ \substack{\text{kernel de una} \\ \text{Gamma}(y_i + 1; \, x_i + t)}} \Rightarrow$$
+$$ \Rightarrow p(\lambda | t; \, x; \, y) = \prod_{i=1}^{10} g_i (\lambda_i | t; \, x_i; \, y_i) \Rightarrow \color{blue}\boxed{\lambda_i | t; \, x_i; \, y_i \hspace{0.2cm} \text{indep}} $$
+
+\newpage
+
+2. Calcula la probabilidad que la tasa en 1985 sea mayor a los a?os anteriores (son 9 probabilidades en total).  
+
+Dado que las posteriores marginales para cada $\lambda_j$ son independientes, podemos simularlas por separado.
+```{r simulalambda}
+n.iter <- 10000
+t <- 1
+lambdas <- matrix(ncol=dim(d)[1], nrow=n.iter, dimnames=list(paste0("iter", 1:n.iter), 
+                                                             paste0("lambda", 1:10)))
+h <- 0.005
+
+set.seed(123456789)
+for(i in 1:10){
+      lambdas[,i] <- rgamma(n.iter, shape=d$fatal_accidents[i] + 1, rate=d$passenger_deaths[i] + t)
+}
+```
+Una vez simulados los valores de $\lambda_j \, \, \, \forall j = 1976; \ldots; \, 1985$ (los valores de $j$ fueron indexados como $1; \ldots; \, 10$) obtenemos simulaciones del cociente $\frac{\lambda_{1985}}{\lambda_{j}}$ los cuales podemos utilizar para aproximar la probabilidad de inter?s: $P(\lambda_{1985} > \lambda_j \, | \, \cdot ) = P \left( \frac{\lambda_{1985}}{\lambda_{j}} > 1 \, \Big| \, \cdot \right)$. A continuaci?n se muestran los resultados.
+```{r cocientes, results="hide"}
+cocientes <- matrix(ncol=dim(d)[1]-1, nrow=n.iter, dimnames=list(paste0("iter", 1:n.iter), 
+                                                                 paste("Cociente", 1:9)))
+for(j in 1:9){
+      cocientes[,j] <- lambdas[,10]/lambdas[,j]
+}
+cocientes <- as_tibble(cocientes) %>% 
+   gather(key="lambda", value="valores") %>%
+   mutate(mayora1 = ifelse(valores>1, 1, 0))
+```
+
+```{r ploteacocientes, echo=FALSE, message=FALSE, warning=FALSE}
+cocientes <- cocientes %>% 
+   dplyr::mutate(eti = ifelse(lambda == "Cociente 1", "P(lambda[1985] > lambda[1976])", 
+                              ifelse(lambda == "Cociente 2", "P(lambda[1985] > lambda[1977])",
+                              ifelse(lambda == "Cociente 3", "P(lambda[1985] > lambda[1978])",
+                              ifelse(lambda == "Cociente 4", "P(lambda[1985] > lambda[1979])",
+                              ifelse(lambda == "Cociente 5", "P(lambda[1985] > lambda[1980])",
+                              ifelse(lambda == "Cociente 6", "P(lambda[1985] > lambda[1981])",
+                              ifelse(lambda == "Cociente 7", "P(lambda[1985] > lambda[1982])",
+                              ifelse(lambda == "Cociente 8", "P(lambda[1985] > lambda[1983])",
+                                                             "P(lambda[1985] > lambda[1984])")))))))))
+p <- ggplot(cocientes) +
+      geom_histogram(aes(x=valores, y=..density.., fill=eti), binwidth=h, show.legend=F) +
+      facet_wrap(~eti, ncol=3, scales="free", labeller=label_parsed) +
+      theme(axis.title=element_blank(),
+            axis.ticks=element_blank())
+pbuild <- ggplot_build(p)$data[[1]]
+anot <- cocientes %>% group_by(eti) %>% summarise(proba = mean(mayora1))
+xs <- vector("numeric", 9)
+ys <- vector("numeric", 9)
+ymin <- vector("numeric", 9)
+for (i in 1:9) {
+      xs[i] <- max((pbuild %>% dplyr::filter(PANEL == i))$x)
+      ys[i] <- max((pbuild %>% dplyr::filter(PANEL == i))$y)
+      ymin[i] <- max((pbuild %>% dplyr::filter(PANEL == i, x >= 1))$y)
+}
+anot <- anot %>% mutate(xs=xs, ys=ys, label=paste(eti, "==", proba))
+p + geom_text_repel(data=anot, aes(x=xs, y=ys, label=label, color=eti), parse=TRUE, size=2.5, show.legend=FALSE) + 
+      theme(strip.background = element_blank(), strip.text = element_blank())
+```
+
+
+# Ejercicio 2
+
+Consideremos el siguiente modelo **jer?rquico**
+$$\begin{array}{r c l}
+y_i \, | \, x_i \, \lambda_i & \stackrel{ind}{\sim} & \text{Poisson}(x_i \, \lambda_i) \\
+\lambda_i \, | \, \tau & \stackrel{ind}{\sim} & \text{Exp}(\tau) \\
+\tau & \sim & \text{Gamma}(a; \, b)
+\end{array}$$
+
+1. Plantea la condicional conjunta de todos los par?metros del modelo.
+$$ p(\lambda_1; \ldots; \lambda_{10}; \, \tau \, | \, y; \, x) \propto p(y \, | \, \lambda_1; \ldots; \lambda_{10}; \, \tau; \, x ) \, p(\lambda_1; \ldots;\lambda_{10}; \, \tau \, | \, x) =$$
+$$= p(y \, | \, \lambda_1; \ldots; \lambda_{10}; \, \tau; \, x ) \, p(\lambda_1; \ldots; \lambda_{10} \, | \, \tau; \, x) \, p(\tau \, | \, x) =$$
+$$= \prod\limits_{i=1}^{10} \left[ \frac{ e^{-(x_i \, \lambda_i)} \, (x_i \, \lambda_i)^{y_i} \, \tau e^{-(\tau \lambda_i)} }{ y_i! } \, \text{I}_{[y_i \in \mathbb{N}_0]} \,  \text{I}_{[\lambda_i \geq 0]} \right] \, \frac{ b^a }{ \Gamma(a) } \, \tau^{a-1} e^{-b\tau} \, \text{I}_{[\tau \geq 0]} \propto$$
+$$ \propto \prod\limits_{i=1}^{10} \left[ e^{-(x_i\lambda_i)} \, \lambda_i^{y_i} \, \tau \, e^{-(\tau \lambda_i)} \text{I}_{[\lambda_i \geq 0]} \right] \tau^{a - 1} \, e^{-b \, \tau} \, \text{I}_{[\tau \geq 0]} = \prod\limits_{i=1}^{10} \Big[ \lambda_i^{y_i} \, \exp\left\{ - (x_i + \tau) \lambda_i \right\} \, \text{I}_{[\lambda_i \geq 0]} \Big] \tau^{a + 10 - 1} \, e^{- b \, \tau} \, \text{I}_{[\tau \geq 0]} $$
+
+2. Para implementar un algoritmo de Gibbs es necesario obtener las posteriores condicionales. Encuentra $p(\lambda_i \, | \, \lambda_{-i}; \, \tau; y)$ y $p(\tau \, | \, \lambda_1; \ldots; \lambda_{10}; \, y)$.
+
+$$ p(\lambda_i \, | \, \lambda_{-i}; \, \tau; \, y; \, x) \propto \lambda_i^{y_i} \, \exp\Big\{ - (x_i + \tau) \lambda_i \Big\} \, \text{I}_{[ \lambda_i \geq 0 ]} \Rightarrow \lambda_i \, | \, \cdot \sim \text{Gamma}(y_i + 1; \, x_i + \tau ) $$
+
+
+$$ p(\tau \, | \, \lambda; \, \, y; \, x) \propto \tau^{ a+ 10 - 1} \, \exp\Bigg\{ - \Bigg(b + \sum\limits_{i=1}^{10} \lambda_i \Bigg)\, \tau \Bigg\} \, \text{I}_{[\tau \geq 0]} \Rightarrow \tau \, | \, \cdot \sim \text{Gamma}\left( a + 10; \, b +\sum\limits_{i=1}^{10} \lambda_i \right)$$
+\vspace{0.3cm}
+
+3. Escriba el paso iterativo de un algoritmo de Gibbs para este modelo. Es decir, dado $(\lambda; \, \tau)^k$, ?c?mo se obtiene $(\lambda; \, \tau)^{k+1}$? ($k$ representa el numero de iteraci?n).
+
+```{r gibbs, eval=FALSE}
+set.seed(1234)
+a <- b <- 1
+n.iter <- 100
+titas <- matrix(nrow=n.iter, ncol=dim(d)[1]+1, byrow=TRUE,
+                dimnames=list(paste0("iter", 1:n.iter), c("tau", paste0("lambda", 1:dim(d)[1]))))
+titas["iter1", "tau"] <- rgamma(1, shape=a, rate=b)
+titas["iter1", 2:(dim(d)[1]+1)] <- rexp(dim(d)[1], rate=titas["iter1", "tau"])
+for(i in 2:dim(titas)[1]){
+      titas[i, "tau"] <- rgamma(1, shape=a+dim(d)[1], rate=b+sum(titas[i-1, 2:dim(d)[1]+1]))
+      for(k in 1:dim(d)[1]){
+            titas[i, k+1] <- rgamma(1, shape=d$fatal_accidents[k] + 1, 
+                                    scale=d$passenger_deaths[k] + titas[i, "tau"])
+  }
+}
+```
+
+\newpage
+
+# Ejercicio 3
+
+Consideremos otro modelo **jer?rquico**
+$$\begin{array}{r c l}
+y_i & \stackrel{ind}{\sim} & \text{Poisson}(x_i \, \lambda_i) \\
+\lambda_i & \stackrel{ind}{\sim} & \text{Gamma}(\alpha; \, \beta) \\
+(\alpha; \, \beta) & \sim & p(\alpha; \, \beta)
+\end{array}$$
+
+1. Proponga una previa para $(\alpha; \, \beta)$. Cualquier opci?n puede ser v?lida. Tambi?n se puede reparametrizar $\text{Gamma}(\alpha; \, \beta)$ y trabajar con otros dos par?metros que sea m?s f?cil de modelizar. Escribe una breve justificaci?n de tu elecci?n.
+
+Primero reparametrizamos la distribuci?n de $\lambda_i$ de forma tal que:
+$$ \left\{ \begin{array}{r c c c l}
+\mu & = & E(\lambda_i) & = & \frac{\alpha}{\beta} \\[0.5em]
+\tau & = & V(\lambda_i) & = & \frac{\alpha}{\beta^2}
+\end{array} \right. \Rightarrow 
+\left\{ \begin{array}{r c l}
+\alpha & = & \frac{\mu^2}{\tau} \\[0.5em]
+\beta & = & \frac{\mu}{\tau}
+\end{array} \right. \Rightarrow \lambda_i \sim \text{Gamma}\left( \frac{\mu^2}{\tau}; \, \frac{\mu}{\tau} \right)$$
+
+Eligo como previa para $(\mu; \, \tau)$ distribuci?n cuyas m?rgenes se distribuyen Gamma, y son independientes.
+$$ (\mu; \, \tau) \sim \text{Gamma}(a; \, b) \times \text{Gamma}(c; \, d) $$
+Justificaci?n:  
+a. Why not?  
+b. Respeta el recorrido de $(\alpha; \, \beta)$, y por lo tanto, el de $(\mu; \, \tau)$  
+c. Dada la reparametrizaci?n, esta elecci?n permite modelar la media y la varianza de $\lambda_i$, de forma de elegir previas consistentes con el conocimiento previo del investigador.
+
+2. Escribe el modelo seleccionado en STAN (`modelo.stan`).    
+
+```{r modelostan}
+modelo.stan <- "
+data {
+      int<lower=1> n; // n?mero de observaciones
+      int y[n];       // cantidad de acidentes fatales
+      int x[n];       // cantidad de los muertos
+      real a;         // 
+      real b;         // 
+      real c;         // 
+      real d;         // 
+}
+parameters{
+      real<lower=0> lambdas[n];
+      real<lower=0> mu;
+      real<lower=0> tau;
+}
+transformed parameters {
+      real alpha;
+      real beta;
+      alpha = mu^2/tau;
+      beta = mu/tau;
+}
+model {
+      mu ~ gamma(a, b);
+      tau ~ gamma(c, d);
+      for (i in 1:n) lambdas[i] ~ gamma(alpha, beta);
+      for (i in 1:n) y[i] ~ poisson(x[i]*lambdas[i]);
+}
+"
+```
+
+3. **(Opcional)** Utiliza STAN para obtener simulaciones posteriores de tu modelo. Comenta sobre la convergencia, presenta un resumen de la inferencia posterior y realiza el mismo ejercicio que en el deber anterior (histograma de las pendientes).
+
+```{r compiladostan, results="hide", message=FALSE, warning=FALSE}
+# Compila el modelo en C++
+modelo <- stan_model(model_code=modelo.stan)
+# Obtiene simulaciones para el modelo
+sim <- sampling(modelo, iter=20000, data=list(n=dim(d)[1], y=d$fatal_accidents, 
+                                              x=d$passenger_deaths, a=1, b=1, c=1, d=1))
+```
+
+```{r echo=FALSE}
+knitr::kable(summary(sim)[[1]], format="markdown", digits=2, format.args=list(decimal.mark=",", big.mark="."), align="c", caption="Resumen de inferencia posterior del modelo STAN" )
+```
+
+Tal como puede verse en la tabla de resumen, no hay indicios de falta de convergencia dado que los valores de los `Rhat` son todos muy cercanos a 1.
+
+```{r histoslpos, message=FALSE}
+set.seed(1234)
+slope_fn <- Vectorize(
+      function(lam, xs) {
+            yrep <<- rpois(length(xs), lambda=lam*xs)
+            m <<- lm(log(yrep) ~ xs)
+            coef(m)[2]
+      },
+      vectorize.args = 'lam')
+slp.sims <- matrix(nrow=20000, ncol=20)
+colnames(slp.sims) <- paste0(c("lambda", "slp"), rep(1:10, each=2))
+for(i in 1:10){
+      slp.sims[,paste0("lambda", i)] <- unlist(((sim@sim[["samples"]])[[4]])[i])
+      slp.sims[,paste0("slp",i)] <- slope_fn(lam=slp.sims[,paste0("lambda",i)], xs=d$miles_flown)
+}
+slp.sims.pl <- as_tibble(slp.sims) %>% dplyr::select(matches("slp[0-9]+")) %>% 
+      gather(key="cadena", value="slp")
+slp.sims.pl$cadena <- factor(slp.sims.pl$cadena, levels=paste0("slp", 1:10))
+
+ggplot(slp.sims.pl) +
+      geom_histogram(aes(slp, fill=cadena), show.legend=F) +
+      labs(x="Slope", y=element_blank()) +
+      ggtitle(label="Histograma de Slope para cada lambda") +
+      theme(axis.ticks=element_blank(),
+            axis.title.x=element_text(face="bold"),
+            plot.title=element_text(hjust=0.5)) +
+      geom_vline(xintercept=coef(lm(log(fatal_accidents) ~ miles_flown, data=d))[2], color="red") +
+      geom_vline(data=(slp.sims.pl %>% group_by(cadena) %>% summarise(media=mean(slp))), 
+                 aes(xintercept=media), color="black") +
+      facet_wrap(~cadena, ncol=3, scales="free")
+```
+
+En el gr?fico anterior, la linea roja representa el `slope` del modelo, mientras que la l?nea negra representa la media de las simulaciones para cada `lambda`. 
