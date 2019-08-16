@@ -1,5 +1,5 @@
 ---
-title: "Laboratorio 1: Introducci?n al tidyverse"
+title: "Laboratorio 1: Introducción al tidyverse"
 output: pdf_document
 ---
 
@@ -11,9 +11,10 @@ pollo <- ChickWeight
 ```
 
 ## Ejercicio 1
+
 Para este ejercicio vamos a trabajar con los datos `ChickWeight`, para tenerlos disponibles simplemente hacemos `data(ChickWeight)`
 
-Los datos `ChickWeight` tienen 578 filas y 4 columnas, provienen de un experimento sobre el efecto de la dieta en el crecimiento temprano de los pollos. Se puede obtener m?s informaci?n sobre los datos mediante `?ChickWeight`
+Los datos `ChickWeight` tienen 578 filas y 4 columnas, provienen de un experimento sobre el efecto de la dieta en el crecimiento temprano de los pollos. Se puede obtener más información sobre los datos mediante `?ChickWeight`
 
 #### Datos completos
 
