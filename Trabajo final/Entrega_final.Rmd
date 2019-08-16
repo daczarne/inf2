@@ -1,0 +1,250 @@
+---
+title: "Oferta laboral de las mujeres casadas"
+author: "Daniel Czarnievicz & Lucía Coudet"
+date: "Diciembre, 2017"
+output: 
+   pdf_document:
+        number_sections: true
+header-includes:
+   - \usepackage{mathrsfs}
+   - \everymath{\displaystyle}
+   - \setlength{\parskip}{1em}
+   - \usepackage{fancyhdr}
+   - \pagestyle{fancy}
+   - \lhead{Oferta laboral de las mujeres casadas}
+   - \rhead{Inferencia II}
+   - \usepackage{multirow}
+   - \usepackage{booktabs}
+   
+geometry: margin=1in
+fontsize: 12pt
+lang: es
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE)
+# setwd("C:/Users/user/Dropbox/Trabajo final")
+setwd("C:/Users/dacza/Dropbox/UdelaR/FCEA/Semestre 10/Inferencia II/Trabajo final")
+
+library(foreign)
+library(tidyverse)
+library(ggthemes)
+library(HDInterval)
+library(kableExtra)
+library(bayesplot)
+load("heckman.Rdata")
+```
+
+# Objetivo
+
+El objetivo del presente trabajo es modelar la oferta de trabajo de las mujeres casadas en Uruguay para el año 2009. Para ello se trabaja con un extracto de la ECH 2009 en el cual se seleccionan a todas las mujeres casadas en edad de trabajar. Para determinar dicha edad, se toman únicamente a las mujeres mayores de 25 años y menores a 60 años. Se cuenta entonces con un total de 19.919 observaciones.
+
+El primer problema que presenta este tipo de estudio radica en que la variable a estudiar es una variable censurada, es decir, que se observan horas trabajadas únicamente para las mujeres que efectivamente trabajan. El resto de ellas tiene una oferta laboral, pero no es observable. Por lo tanto, estamos ante la presencia de una censura inferior en el valor 0.
+
+En segundo lugar, existe un potencial problema de autoselección de la unidades del marco. Esto se traduce en que las observaciones que se acumulan en el punto de censura no lo hacen de forma aleatoria, sino que existen factores adicionales que determinan este comportamiento.
+
+Para solucionar estos problemas realizaremos una implementación bayesiana del método de Heckman. Este método busca incorporar en el modelo para la variable latente los problemas descriptos en los párrafos anteriores (variable censurada y autoselección muestral). Para ello Heckman propone un procedimiento de dos etapas de la siguiente forma:
+\begin{enumerate}
+\item Estimar un modelo PROBIT para el margen exstensivo usando toda la muestra.
+\item Estimar mediante MCO el margen intensivo usando únicamente las unidades que no se encuentran en el punto de censura.
+\end{enumerate}
+
+Lo que Heckman busca testear es la existencia de una correlación entre los márgens. Si dicha correlación no existiera, entonces no estaríamos frente a un problema de autoselección muestral, y la censura podría considerarse aleatoria. Por lo tanto, la segunda estimación deberá contemplar esta característica de los datos.
+
+\newpage
+# Los datos
+
+## Variables utilizadas
+
+La base de datos contiene información respecto de las siguientes variables:
+
+- `horas`: cantidad de horas semanales trabajadas.
+- `sal`: logaritmo del salario por hora percibido.
+- `edad`: años cumplidos.
+- `educ`: años de educación completados.
+- `hijos`: cantidad de hijos.
+- `salmar`: logaritmo del salario del marido.
+- `expot`: experencia potencial del individuo. Se contruyó como la diferencia entre `edad` y `educ + 6`.
+
+Un problema adicional viene dado porla variable `salmar`, la cual contiene valores faltantes. No resulta razonable pensar que esos valores faltantes fueron generados de forma aleatoria, sino que involucran un posible problema de sesgos de selección, debido a que es posible que aquellas mujeres que no quisieron declarar el salario del marido sean las mujeres que no trabajan y cuyos maridos presentan niveles de salario elevados. No obstante, en lo que sigue del trabajo se hará abstracción de éste problema, continuando solamente con las observaciones para las cuales se cuenta con la información del salario del marido.
+
+```{r, echo=FALSE}
+knitr::kable(select(head(base, 10), -nasal, -nasalmar, -lambda), format="latex", caption="Mujeres casadas en Uruguay en el año 2009", booktabs = T, digits = 2, align="c") %>% kable_styling(latex_options = "hold_position")
+```
+
+\newpage
+## Descripción
+
+A continuación se presenta el histograma de la variable `horas`, en el cual es posible apreciar la censura mencionada en el valor `horas = 0`.
+
+```{r, echo=FALSE, fig.align="center", fig.width=6, fig.asp=0.618, out.width="70%", fig.cap="Histograma de la variable horas trabajadas.", fig.pos="[h]"}
+ggplot(base) + 
+      geom_histogram(aes(horas, y=..density..), fill="seagreen", binwidth=1) +
+      xlab("Cantidad de horas trabajadas") +
+      ylab(NULL) +
+      ggthemes::theme_economist() +
+      theme(axis.ticks=element_blank(),
+            axis.title.x=element_text(face="bold"))
+```
+
+En lo que respecta a la variable `hijos`, se observa que en el punto de censura las mujeres que tienen hijos predominan sobre las que no tienen hijos para todos los niveles de la variable `sal`. Para el resto de las mujeres, el gráfico no es concluyente. 
+
+```{r, echo=FALSE, fig.align="center", fig.width=6, fig.asp=0.618, out.width="70%", fig.pos="[h]", fig.cap="Scatter plot de horas vs. salario por hora de las mujeres (en log), separando a mujeres seguún tengan o no hijos."}
+ggplot(base) +
+      geom_point(aes(x=horas, y=salmar, color=ifelse(base$hijos > 0, "Tiene hijos", "No tiene hijos"))) +
+      xlab("Horas trabajadas") +
+      ylab("Salario por hora (log)") +
+      ggthemes::theme_economist() +
+      theme(axis.ticks=element_blank(),
+            legend.title=element_blank(),
+            axis.title=element_text(face="bold"))
+```
+
+\newpage
+El histograma de `horas` según la variable `hijos` muestra una tendencia a que las mujeres que tienen hijos trabajan menos horas.
+
+```{r, echo=FALSE, fig.align="center", fig.width=6, fig.asp=0.618, out.width="70%", fig.cap="Histograma de las horas trabajadas separando según las mujeres tengan hijos o no. ", fig.pos="[h]"}
+ggplot(base) + 
+      geom_histogram(aes(horas, y=..density.., fill=ifelse(base$hijos > 0, "Tiene hijos", "No tiene hijos")), position="dodge", bins=100) +
+      xlab("Horas trabajadas") +
+      ylab(NULL) +
+      ggthemes::theme_economist() +
+      theme(axis.ticks=element_blank(),
+            legend.title=element_blank(),
+            axis.title=element_text(face="bold"))
+```
+
+# El modelo
+
+Dado que la variable de interés `horas` es un conteo de horas semanales trabajadas, se propone modelarla por una distribución Poisson de tasa $\theta_i$:
+$$\text{horas}_{i} \sim \text{Poisson}(\theta_i) \, \text{I}_{ [\theta_i > 0] }$$
+
+Se considera al parámetro $\theta_i$ como el producto entre la indicatriz de que la observación no esté en el punto de censura, $\text{I}_{[ \mu_1 > 0 ]}$, y el márgen intensivo $\mu_2$:
+$$\theta_i = \mu_2 \times \text{I}_{[ \mu_1 > 0 ]}$$
+
+## Márgen extensivo
+
+Se construye la variable `trabaja` como la indicatriz de que $\text{horas}_{i}$ tome valores estrictamente positivos. Con esa variable como dependiente se estima el siguiente modelo probit:
+$$\text{Probit}(\mu_{1i}) = \bold{z}_i' \, \boldsymbol{\gamma}$$
+donde el vector de covariables $\bold{z}_i$ incluye a las variables `educ`, `expot`, `expot2`, `hijos` y `salmar`. Para el vector de parámetros asociados a las covariables, $\boldsymbol{\gamma}$, se selecciona una distribución previa Normal:
+$$\gamma_j \sim \text{Normal}(0; 1,6^2) \:\:\:\: \forall j$$
+
+Se construye la variable `lambda de Heckman` como la inversa del ratio de Mills:\footnote{El motivo por el cual el lambda de Heckman es relevante en esta clase de problemas esta vinculado a la esperanza de un modelo Tobit. El resultado fundamental es que:
+$$E(y_i | y_i^* > 0; \, \bold{x}_i) = \bold{x}_i' \, \boldsymbol{\beta} + \sigma \, \frac{ \phi\left( \frac{\bold{x}_i' \, \boldsymbol{\beta}}{ \sigma } \right) }{ \Phi\left( \frac{\bold{x}_i' \, \boldsymbol{\beta}}{ \sigma } \right) } = \bold{x}_i' \, \boldsymbol{\beta} + \sigma \, \lambda_i $$ 
+donde $y_i^*$ es la variable latente tal que $y_i^* = \bold{x}_i \, \boldsymbol{\beta } + u_i$ donde $u_i \sim \text{Normal}(0; \, \sigma^2)$.
+
+El detalle puede encontrarse en Wooldridge (2010) - Econometric analysis of cross section and panel data - 2nd edition.}
+$$\hat{\lambda}_i^k = \frac{ \phi( \bold{z}'_i \, \boldsymbol{\gamma}^k ) }{ \Phi( \bold{z}'_i \, \boldsymbol{\gamma}^k ) } \,\,\, \forall i = 1; \, \ldots; \, n \,\,\, \forall k = 1; \, \ldots; \, S$$
+$$\hat{\lambda}_i = \frac{1}{S} \sum\limits_{k=0}^{S} \hat{\lambda}_i^k \,\,\, \forall i = 1; \, \ldots; \, n$$
+
+## Márgen intensivo
+
+Utilizando solamente las observaciones no censuradas, se modela las horas efectivamente trabajadas de la siguiente manera:
+$$ \mu_{2i} = \bold{x}_i' \, \boldsymbol{\beta} + \boldsymbol{\hat{\lambda}}_i \, \sigma_{12} $$
+donde el vector de covariables $\bold{x}_i$ incluye las variables `educ`, `expot`, `expot2`, `hijos`, y `lambda`. Nuevamente, para el vector de parámetros asociados a las covariables, $\boldsymbol{\beta}$, se selecciona una distribución previa Normal, así como también para el coeficiente asociado al $\lambda$ de Heckman:
+$$\beta_j \sim \text{Normal}(0; \, 2,5^2) \:\:\:\: \forall j$$
+$$\sigma_{12} \sim \text{Normal}(0; \, 2,5^2)$$
+
+# Resultados
+
+## Márgen extensivo
+
+Debido a la complejidad computacinal de la estimación, las cadenas correpondientes al margen extensivo debieron estimarse por separado. Se realizaron cuatro cadenas utilizando los algoritmos de Hamiltonian Monte Carlo de las librerías `rstan` y `rstanarm` para `R`.
+
+```{r, message=FALSE, echo=FALSE, fig.align="center", fig.width=6, fig.asp=0.618, out.width="70%", fig.pos="[h]", fig.cap="Cadenas simuladas para los parámetros del modelo probit para el margen extensivo. Las mismas no evidencian falta de convergencia."}
+cadenas %>% as_tibble() %>% gather() %>% mutate(x=rep(seq(from=1, to=500, by=1), 24), chain=rep(c(rep(1, 500), rep(2, 500), rep(3, 500), rep(4, 500)),6)) %>%
+      ggplot() +
+      geom_line(aes(x=x, y=value, color=chain), show.legend=FALSE) +
+      xlab("Iteración") +
+      ylab("Valor simulado") +
+      facet_wrap(~key, scales="free") +
+      ggthemes::theme_economist() + 
+      theme(axis.title=element_text(face="bold"),
+            axis.ticks=element_blank())
+```
+
+\newpage
+Se obtienen las siguientes distribuciones de probabilidad posteriores en cada parámetro:
+
+```{r, message=FALSE, fig.align="center", fig.width=6, fig.asp=0.618, out.width="70%", fig.pos="[H]", fig.cap="Histograma de las distribuciones posteriores de los coeficientes asociados a las covariables del modelo probit."}
+cadenas %>% as_tibble() %>% gather(key=coefname, value=value) %>% left_join(linea, by="coefname") %>%
+      ggplot() +
+      geom_histogram(aes(x=value, y=..density.., fill=coefname), show.legend=FALSE) +
+      geom_vline(aes(xintercept=coef), size=1, show.legend=FALSE) +
+      facet_wrap(~coefname, scales="free") + 
+      ggthemes::theme_economist() +
+      theme(axis.ticks=element_blank(),
+            axis.title=element_blank())
+```
+
+Las líneas verticales corresponden a estimaciones máximo verosímiles de los coeficientes. Se observa entonces que los resultados son robustos al método de estimación que se utilice.
+
+Como medidas de bondad de ajuste se utilizaron el `pr0` y `pr1` donde:
+
+- `pr0` es la probabilidad de que el modelo replique un cero para una observación que toma valor cero  
+- `pr1` es la probabilidad de que el modelo replique un uno para una observación que toma valor uno  
+
+```{r, message=FALSE, fig.align="center", fig.width=6, fig.asp=0.618, out.width="70%", fig.cap="Histograma de las distribuciones posteriores de pr0 y pr1.", fig.pos="[h]"}
+pr %>% as_tibble() %>% gather() %>% mutate(linea = if_else(key == "pr0", pr0.hat, pr1.hat)) %>%
+      ggplot() +
+      geom_histogram(aes(x=value, y=..density.., fill=key), show.legend=FALSE) +
+      geom_vline(aes(xintercept=linea), color="black", size=1, show.legend=FALSE) +
+      facet_wrap(~ key, scales="free") +
+      ggthemes::theme_economist() +
+      theme(axis.ticks=element_blank(),
+            axis.title=element_blank())
+```
+
+El gráfico permite observar que, para ambos casos, las distribuciones se concentran por encima del valor 0.5 lo cual valida el modelo establecido para el márgen extensivo. Las líneas verticales representan la proporcion de ceros y unos correctamente predichos por la estimación máximo verosímil, lo cual nuevamente evidencia la robustez de los resultados.
+
+## Márgen intensivo
+
+En la `Figuara 7` se pueden observar las distribuciones de las simulaciones de las posteriores de los parámetros en el márgen intensivo.
+
+```{r, message=FALSE, fig.align="center", fig.width=6, fig.asp=0.618, out.width="70%", fig.cap="Histograma de las distribuciones posteriores de los parámetros asociados a las covariables del modelo para el margen intensivo", fig.pos="[h]"}
+as.matrix(mgint) %>% as_tibble() %>% dplyr::select(-sigma) %>% gather(key=coefname, value=value) %>% left_join(linea.int, by="coefname") %>%
+      ggplot() +
+      geom_histogram(aes(x=value, y=..density.., fill=coefname), show.legend=FALSE) +
+      geom_vline(aes(xintercept=coef), size=1, show.legend=FALSE) +
+      facet_wrap(~coefname, scales="free") + 
+      ggthemes::theme_economist() +
+      theme(axis.ticks=element_blank(),
+            axis.title=element_blank())
+```
+
+Nuevamente se observa que los resultados son robustos. La línea negra corresponde a estimaciones máximo verosímiles de cada parámetro, las cuales se situan cerca del centro de las distribuciones posteriores para todos los parámetros. Se observa además que la distribución posterior del coeficiente asociado a la variable `lambda` tiene una esperanza alejada del valor 0, lo cual evidencia correlación entre los márgenes y por lo tanto de autoselección muestral. 
+
+```{r, comment=NA}
+summary(mgint)
+```
+
+# Diagnóstico
+
+Se obtienen réplicas para cada observación utilizando los valores posteriores $\theta_i$. Los siguientes gráficos permiten observar que el modelo es bueno prediciendo los puntos de censura pero malo prediciendo el resto de las observacionbes. En otras palabras, el márgen extensivo ajusta bien, no así el márgen intensivo.
+
+```{r, message=FALSE, fig.align="center", fig.width=6, fig.asp=0.618, out.width="65%", fig.cap="Histograma de la variable horas trabajadas. En verde los valores muestrales, en gris los valores simulados. Nótese que el ajuste del margen extensivo es perfecto, por lo que las barras correspondientes quedan totalmente superpuestas.", fig.pos="[h]"}
+base %>% mutate(yrep.media = rowMeans(yrep)) %>% dplyr::select(horas, yrep.media) %>%
+      ggplot() +
+      geom_histogram(aes(yrep.media, y=..density..), binwidth=1) +
+      geom_histogram(aes(horas, y=..density..), fill="seagreen", binwidth=1) +
+      xlab("Cantidad de horas trabajadas") +
+      ylab(NULL) +
+      ggthemes::theme_economist() +
+      theme(axis.ticks=element_blank(),
+            axis.title.x=element_text(face="bold"))
+```
+
+```{r, message=FALSE, fig.align="center", fig.width=6, fig.asp=0.618, out.width="70%", fig.cap="Intervalos de credibilidad para la predictiva posterior y los valores muestrales. Nótese que los intervalos para las observaciones censuradas son muy poco amplios. Tambien presentan buen ajuste los valores cercanos a la media de las observaciones no censuradas pero no así el rsto de las observaciones."}
+ppc_intervals(base$horas[1:100], t(yrep[1:100,]), prob=.5)
+```
+
+\newpage
+# Conclusiones
+
+La implementación bayesiana del modelo de selección muestral propuesto por Heckman presenta evidencia concluyente en cuánto a existencia de correlación entre el márgen extensivo y el márgen intensivo dado que la variable `lambda` de Heckman presenta una distribución alejada del valor 0. Como fue mencionado anteriormente, esto implica autoselección de unidades en la muestra y por lo tanto justifica la utilización del presente modelo. 
+
+En lo que respecta a las variables seleccionadas para el análisis, como era de esperar, `hijos` tiene un efecto negativo sobre `horas` y `expot` presenta rendimientos marginales decrecientes. Por su parte, la variable `educ` tiene un efecto positivo sobre `horas`. 
+
+Tanto para la variable `lambda` de Heckman como para el resto de las variables, los resultados son consistentes con los obtenidos en la implementación clásica del modelo de Heckman. 
+
+El mal ajuste del márgen intensivo puede deberse a la distribución seleccionada para los datos. El histograma de la variable `horas` sugiere que sería razonable proponer una distribución con varios modos. Una posible alternativa sería una mixtura de distribuciones `Poisson` cada una con diferentes parámetros $\theta_{ji}$.
