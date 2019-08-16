@@ -18,7 +18,7 @@ Co-autora: [@lcoudet](https://github.com/lcoudet)
 
 ## Laboratorios
 
-[Laboratorio 1](https://github.com/daczarne/inf2/blob/master/Laboratorios/Laboratorio%201/lab1_actividad.html)  
+[Laboratorio 1](https://github.com/daczarne/inf2/blob/master/Laboratorios/Laboratorio%201/lab1_actividad.pdf)  
 [Laboratorio 2](https://github.com/daczarne/inf2/blob/master/Laboratorios/Laboratorio%202/bioassay.stan)  
 [Laboratorio 3](https://github.com/daczarne/inf2/blob/master/Laboratorios/Laboratorio%203/codigo.R)  
 
