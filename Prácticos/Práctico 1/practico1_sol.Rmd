@@ -1,6 +1,6 @@
 ---
-title: "Pr?ctico 1 - Soluci?n"
-author: "Daniel Czarnievicz"
+title: "Práctico 1 - Solución"
+author: "Daniel Czarnievicz & Lucía Coudet"
 date: "2017"
 output: pdf_document
 ---

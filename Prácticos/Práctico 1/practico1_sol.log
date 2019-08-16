@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (MiKTeX 2.9.7050 64-bit) (preloaded format=pdflatex 2019.6.15)  15 AUG 2019 20:55
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (MiKTeX 2.9.7050 64-bit) (preloaded format=pdflatex 2019.6.15)  15 AUG 2019 22:27
 entering extended mode
 **./practico1_sol.tex
 (practico1_sol.tex
@@ -738,7 +738,7 @@ Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 296.
 Here is how much of TeX's memory you used:
  12861 strings out of 492895
  188777 string characters out of 3133479
- 307118 words of memory out of 3000000
+ 307259 words of memory out of 3000000
  16563 multiletter control sequences out of 15000+200000
  43774 words of font info for 52 fonts, out of 3000000 for 9000
  1141 hyphenation exceptions out of 8191
@@ -760,7 +760,7 @@ msy10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/lm/lmsy7.pfb><C:/Prog
 ram Files/MiKTeX 2.9/fonts/type1/public/lm/lmtk10.pfb><C:/Program Files/MiKTeX 
 2.9/fonts/type1/public/lm/lmtt10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/p
 ublic/amsfonts/symbols/msam10.pfb>
-Output written on practico1_sol.pdf (4 pages, 559145 bytes).
+Output written on practico1_sol.pdf (4 pages, 562133 bytes).
 PDF statistics:
  157 PDF objects out of 1000 (max. 8388607)
  22 named destinations out of 1000 (max. 500000)
