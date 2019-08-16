@@ -1,6 +1,6 @@
 ---
 title: "Práctico 0 - Solución"
-author: "Daniel Czarnievicz"
+author: "Daniel Czarnievicz & Lucía Coudet"
 date: "September 9, 2017"
 output: pdf_document
 ---
