@@ -16,4 +16,9 @@ Co-autora: [@lcoudet](https://github.com/lcoudet)
 [Entrega 2](https://github.com/daczarne/inf2/blob/master/Entregas/Entrega%202/entrega2.pdf)  
 [Entrega 3](https://github.com/daczarne/inf2/blob/master/Entregas/Entrega%203/entrega3.pdf)  
 
+# Laboratorios
+
+[Laboratorio 1](https://github.com/daczarne/inf2/blob/master/Laboratorios/Laboratorio%201/lab1_actividad.html)  
+[Laboratorio 2](https://github.com/daczarne/inf2/blob/master/Laboratorios/Laboratorio%202/bioassay.stan)  
+[Laboratorio 3](https://github.com/daczarne/inf2/blob/master/Laboratorios/Laboratorio%203/codigo.R)  
 
