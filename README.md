@@ -3,7 +3,6 @@
 Materiales del curso de Inferencia Bayesiana  
 IESTA - FCEA - UDELAR  
 Edición 2017  
-Co-autora: [@lcoudet](https://github.com/lcoudet)
 
 ## Prácticos
 
