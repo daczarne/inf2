@@ -1,4 +1,6 @@
-# inf2 ![archived](https://img.shields.io/badge/lifecycle-archived-red.svg)
+# inf2  
+
+![archived](https://img.shields.io/badge/lifecycle-archived-red.svg)
 
 Materiales del curso de Inferencia Bayesiana  
 IESTA - FCEA - UDELAR  
