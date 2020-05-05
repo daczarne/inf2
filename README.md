@@ -1,8 +1,8 @@
 # Inferencia Bayesiana  
  
 ![archived](https://img.shields.io/badge/lifecycle-archived-red.svg)  
-![languages](https://img.shields.io/github/languages/count/daczarne/inf2)   
-![top language](https://img.shields.io/github/languages/top/daczarne/inf2)   
+![languages](https://img.shields.io/github/languages/count/daczarne/udelar_inferencia_2)   
+![top language](https://img.shields.io/github/languages/top/daczarne/udelar_inferencia_2)   
 
 Materiales del curso de Inferencia Bayesiana  
 IESTA - FCEA - UDELAR  
